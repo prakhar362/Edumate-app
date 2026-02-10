@@ -1,0 +1,144 @@
+from datetime import timedelta
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token
+
+from app.auth.deps import get_current_user
+from app.auth.security import create_access_token, get_password_hash, verify_password
+from app.config import GOOGLE_CLIENT_ID
+from app.models.schemas import (
+    GoogleAuthIn,
+    Token,
+    UserCreate,
+    UserLogin,
+    UserOut,
+)
+from app.services import mongodb_service
+
+router = APIRouter()
+
+
+@router.post("/register", response_model=Token)
+def register(user_in: UserCreate):
+    existing = mongodb_service.get_user_by_email(user_in.email)
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered",
+        )
+
+    password_hash = get_password_hash(user_in.password)
+    user_id = mongodb_service.create_user(
+        name=user_in.name or user_in.email.split("@")[0],
+        email=user_in.email,
+        password_hash=password_hash,
+        auth_provider="local",
+    )
+
+    access_token = create_access_token(
+    data={"sub": str(user_id)}
+)
+
+
+    user_out = UserOut(
+        id=user_id,
+        email=user_in.email,
+        name=user_in.name,
+        auth_provider="local",
+    )
+    return Token(access_token=access_token, user=user_out)
+
+
+@router.post("/login", response_model=Token)
+def login(credentials: UserLogin):
+    user = mongodb_service.get_user_by_email(credentials.email)
+    if not user or not user.get("password_hash"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+        )
+
+    if not verify_password(credentials.password, user["password_hash"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+        )
+
+    user_id = user.get("id") or user.get("_id")
+    access_token = create_access_token(
+    data={"sub": str(user_id)}
+)
+
+
+    user_out = UserOut(
+        id=str(user_id),
+        email=user["email"],
+        name=user.get("name"),
+        auth_provider=user.get("auth_provider", "local"),
+        picture=user.get("picture"),
+    )
+    return Token(access_token=access_token, user=user_out)
+
+
+@router.post("/google", response_model=Token)
+def google_login(payload: GoogleAuthIn):
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Google client ID not configured on server",
+        )
+
+    try:
+        idinfo = id_token.verify_oauth2_token(
+            payload.id_token,
+            google_requests.Request(),
+            GOOGLE_CLIENT_ID,
+        )
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid Google ID token",
+        )
+
+    email = idinfo.get("email")
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google token does not contain email",
+        )
+
+    name = idinfo.get("name") or email.split("@")[0]
+    picture = idinfo.get("picture")
+    google_sub = idinfo.get("sub")
+
+    user = mongodb_service.upsert_google_user(
+        email=email,
+        name=name,
+        google_id=google_sub,
+        picture=picture,
+    )
+
+    user_id = user.get("id") or user.get("_id")
+    access_token = create_access_token(data={"sub": user_id})
+
+    user_out = UserOut(
+        id=str(user_id),
+        email=email,
+        name=name,
+        auth_provider="google",
+        picture=picture,
+    )
+    return Token(access_token=access_token, user=user_out)
+
+@router.get("/me", response_model=UserOut)
+def get_me(current_user=Depends(get_current_user)):
+    return UserOut(
+        id=str(current_user.get("_id") or current_user.get("id")),
+        email=current_user["email"],
+        name=current_user.get("name"),
+        auth_provider=current_user.get("auth_provider", "local"),
+        picture=current_user.get("picture"),
+    )
+
+

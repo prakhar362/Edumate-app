@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import summarizer
+
+from app.routes import auth, summarizer
 
 app = FastAPI()
 
@@ -13,5 +14,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register the router with the correct prefix
+# Auth routes
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+
+# Summarizer routes (protected)
 app.include_router(summarizer.router, prefix="/api/summarize", tags=["summarizer"])
+
+@app.get("/")
+async def root():
+    return {"message": "Edumate Backend is Running 🚀"}
