@@ -1,6 +1,6 @@
-from typing import List, Optional
-
-from pydantic import BaseModel, EmailStr
+from typing import List, Optional,Literal
+from datetime import datetime
+from pydantic import BaseModel, EmailStr, model_validator
 
 
 class QuizQuestion(BaseModel):
@@ -49,3 +49,29 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserOut
+
+class PlaylistCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+
+
+class PlaylistOut(BaseModel):
+    id: str
+    title: str
+    description: Optional[str] = None
+    total_items: int
+    created_at: datetime
+
+from typing import Optional
+from pydantic import BaseModel
+
+class PlaylistItemCreate(BaseModel):
+    name: str
+
+    # primary content
+    summary_id: Optional[str] = None
+
+    # attachments generated from summary
+    quiz_id: Optional[str] = None
+    pdf_url: Optional[str] = None
+    audio_path: Optional[str] = None

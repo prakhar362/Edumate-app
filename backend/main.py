@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes import auth, summarizer
+from app.routes import auth, summarizer,playlists
 
 app = FastAPI()
 
@@ -19,6 +19,8 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 
 # Summarizer routes (protected)
 app.include_router(summarizer.router, prefix="/api/summarize", tags=["summarizer"])
+
+app.include_router(playlists.router, prefix="/api/playlists",  tags=["playlists"])
 
 @app.get("/")
 async def root():

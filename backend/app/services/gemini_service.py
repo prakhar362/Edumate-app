@@ -21,7 +21,7 @@ def get_summary(text: str) -> str:
 
 
 def get_quiz(text: str) -> list:
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={GEMINI_API_KEY}"
     prompt = f"""
     Generate 5 multiple-choice quiz questions based on the following text.
 

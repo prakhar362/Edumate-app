@@ -6,6 +6,7 @@ from app.services import mongodb_service
 
 bearer_scheme = HTTPBearer()
 
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ):
@@ -13,16 +14,18 @@ def get_current_user(
 
     try:
         payload = decode_access_token(token)
-        user_id = payload.get("sub")
 
-        if not user_id:
+        # 🔑 JWT subject (Google / OAuth / your auth)
+        user_sub = payload.get("sub")
+
+        if not user_sub:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token payload",
             )
 
-        # 🔑 FETCH REAL USER FROM DB
-        user = mongodb_service.get_user_by_id(user_id)
+        # 🔎 Fetch user from DB
+        user = mongodb_service.get_user_by_id(user_sub)
 
         if not user:
             raise HTTPException(
@@ -30,7 +33,16 @@ def get_current_user(
                 detail="User not found",
             )
 
-        return user  # ✅ RETURN DB USER
+        # ✅ NORMALIZED USER OBJECT (IMPORTANT)
+        return {
+            "id": str(user["_id"]),      # internal DB id (if needed)
+            "sub": user_sub,             # auth / OAuth id (primary)
+            "email": user.get("email"),
+            "name": user.get("name"),
+        }
+
+    except HTTPException:
+        raise
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

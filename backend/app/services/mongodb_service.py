@@ -264,3 +264,88 @@ def update_summary_score_for_user(summary_id: str, user_id: str, score: int):
 
     return {"message": "Score changed successfully"}
 
+
+
+# -----------------------Playlists -----------------------
+
+def create_playlist(user_id: str, title: str, description: str = "") -> str:
+    playlists = db["playlists"]
+    now = datetime.utcnow()
+
+    doc = {
+        "user_id": user_id,
+        "title": title,
+        "description": description,
+        "created_at": now,
+        "updated_at": now,
+    }
+
+    result = playlists.insert_one(doc)
+    return str(result.inserted_id)
+
+
+def get_playlists_for_user(user_id: str):
+    playlists = db["playlists"]
+    docs = playlists.find({"user_id": user_id}).sort("created_at", -1)
+    return convert_mongo_doc(list(docs))
+
+
+def delete_playlist(user_id: str, playlist_id: str):
+    playlists = db["playlists"]
+    items = db["playlist_items"]
+
+    try:
+        oid = ObjectId(playlist_id)
+    except Exception:
+        return {"message": "Invalid playlist id"}
+
+    playlists.delete_one({"_id": oid, "user_id": user_id})
+    items.delete_many({"playlist_id": playlist_id})
+
+    return {"message": "Playlist deleted"}
+
+
+# -----------------------
+# Playlist Items
+# -----------------------
+
+def add_item_to_playlist(
+    playlist_id: str,
+    name: str,
+    summary_id: str | None = None,
+    quiz_id: str | None = None,
+    pdf_url: str | None = None,
+    audio_path: str | None = None,
+):
+    items = db["playlist_items"]
+
+    doc = {
+        "playlist_id": playlist_id,
+        "name": name,
+        "summary_id": summary_id,
+        "quiz_id": quiz_id,
+        "pdf_url": pdf_url,
+        "audio_path": audio_path,
+        "created_at": datetime.utcnow(),
+    }
+
+    result = items.insert_one(doc)
+    return str(result.inserted_id)
+
+
+def get_playlist_items(playlist_id: str):
+    items = db["playlist_items"]
+    docs = items.find({"playlist_id": playlist_id}).sort("created_at", 1)
+    return convert_mongo_doc(list(docs))
+
+
+def remove_item_from_playlist(item_id: str):
+    items = db["playlist_items"]
+
+    try:
+        oid = ObjectId(item_id)
+    except Exception:
+        return {"message": "Invalid item id"}
+
+    items.delete_one({"_id": oid})
+    return {"message": "Item removed"}
