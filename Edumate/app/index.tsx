@@ -11,7 +11,7 @@ export default function Index() {
   useEffect(() => {
     // Navigate to login after 5 seconds
     const timer = setTimeout(() => {
-      router.replace('/(auth)/login');
+      router.replace('/(auth)/signup');
     }, 5000);
 
     return () => clearTimeout(timer);
@@ -51,7 +51,7 @@ export default function Index() {
           </View>
 
           {/* App Name */}
-          <Text className="text-white text-4xl font-bold tracking-wider mt-4">
+          <Text className="text-white text-5xl font-bold tracking-wider mt-4">
             Edumate
           </Text>
           
