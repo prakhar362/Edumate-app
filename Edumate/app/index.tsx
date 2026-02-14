@@ -1,6 +1,6 @@
 import { Text, View } from "react-native";
 
-export default function Login() {
+export default function Index() {
   return (
     <View
       style={{
@@ -9,7 +9,7 @@ export default function Login() {
         alignItems: "center",
       }}
     >
-      <Text className="text-red-800">Signup page will come here</Text>
+      <Text className="text-red-800">My splash Page will come here</Text>
     </View>
   );
 }
