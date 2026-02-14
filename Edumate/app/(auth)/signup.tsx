@@ -13,11 +13,11 @@ import { useRouter, Link } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-//import { authAPI } from '../../services/auth'; // Ensure this path matches your file structure
+import { useAuthStore } from '@/store/auth.store';
 
 export default function Signup() {
   const router = useRouter();
-  
+  const signup = useAuthStore((s) => s.signup);
   // Form State
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -43,10 +43,11 @@ export default function Signup() {
     setLoading(true);
     try {
       // Call your API
-      //const result = await authAPI.signup(name, email, password);
+      console.log('Attempting signup with:', { name, email, password });
+      await signup(name, email, password);
       console.log('Signup success:', name, email, password);
       Alert.alert('Success', 'Account created successfully!');
-      router.replace('/(auth)/login'); 
+      router.replace("/(tabs)");
     } catch (error) {
       console.error(error);
       Alert.alert('Signup Failed', 'Something went wrong. Please try again.');

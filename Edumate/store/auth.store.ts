@@ -1,22 +1,16 @@
 import { create } from "zustand";
 import * as SecureStore from "expo-secure-store";
-import api from "../api/client";
-
-type User = {
-  id: string;
-  email: string;
-  name?: string;
-};
+import { authAPI } from "@/api/auth.service";
 
 type AuthState = {
-  user: User | null;
+  user: any;
   token: string | null;
   loading: boolean;
-
-  login: (email: string, password: string) => Promise<void>;
   googleLogin: (idToken: string) => Promise<void>;
-  fetchMe: () => Promise<void>;
+  signup: (name: string, email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  hydrate: () => Promise<void>;
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -27,46 +21,72 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email, password) => {
     set({ loading: true });
     try {
-      const res = await api.post("/api/auth/login", {
-        email,
-        password,
-      });
-
-      const { access_token } = res.data;
+      const res = await authAPI.login(email, password);
+      console.log("Login response:", res.data); // Debugging line
+      const { access_token, user } = res.data;
 
       await SecureStore.setItemAsync("token", access_token);
 
-      set({ token: access_token });
-      await useAuthStore.getState().fetchMe();
-    } finally {
+      set({ user, token: access_token, loading: false });
+    } catch (err) {
       set({ loading: false });
+      throw err;
     }
-  },
-
-  googleLogin: async (idToken) => {
-    set({ loading: true });
-    try {
-      const res = await api.post("/api/auth/google", {
-        token: idToken,
-      });
-
-      const { access_token } = res.data;
-
-      await SecureStore.setItemAsync("token", access_token);
-      set({ token: access_token });
-      await useAuthStore.getState().fetchMe();
-    } finally {
-      set({ loading: false });
-    }
-  },
-
-  fetchMe: async () => {
-    const res = await api.get("/api/auth/me");
-    set({ user: res.data });
   },
 
   logout: async () => {
     await SecureStore.deleteItemAsync("token");
     set({ user: null, token: null });
+  },
+
+  signup: async (name, email, password) => {  
+    set({ loading: true });
+    try {
+      const res=await authAPI.register(name, email, password);  
+      console.log("Signup response:", res.data);
+      const { access_token, user } = res.data;
+      await SecureStore.setItemAsync("token", access_token);
+      
+      set({ user, token: access_token, loading: false });
+    }
+
+    catch (err) {
+      set({ loading: false });
+      throw err;
+    }
+  },
+
+
+  googleLogin: async (idToken) => {
+  set({ loading: true });
+
+  try {
+    const res = await authAPI.googleLogin(idToken);
+    const { access_token, user } = res.data;
+
+    await SecureStore.setItemAsync("token", access_token);
+
+    set({
+      user,
+      token: access_token,
+      loading: false,
+    });
+  } catch (err) {
+    set({ loading: false });
+    throw err;
+  }
+},
+
+
+  hydrate: async () => {
+    const token = await SecureStore.getItemAsync("token");
+    if (!token) return;
+
+    try {
+      const res = await authAPI.me();
+      set({ token, user: res.data });
+    } catch {
+      await SecureStore.deleteItemAsync("token");
+    }
   },
 }));
