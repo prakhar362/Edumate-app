@@ -28,7 +28,7 @@ export default function SummaryPlayer() {
              <TouchableOpacity onPress={() => router.back()}>
                 <Ionicons name="chevron-down" size={30} color="white" />
              </TouchableOpacity>
-             <Text className="text-white font-bold text-xs uppercase tracking-widest">Playing From Playlist</Text>
+             <Text className="text-white font-bold text-xs uppercase tracking-widest">Playing From Summary</Text>
              <TouchableOpacity>
                 <Ionicons name="ellipsis-horizontal" size={24} color="white" />
              </TouchableOpacity>
