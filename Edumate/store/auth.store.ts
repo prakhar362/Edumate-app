@@ -6,6 +6,7 @@ type AuthState = {
   user: any;
   token: string | null;
   loading: boolean;
+  hydrated: boolean;  
   googleLogin: (idToken: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
@@ -17,6 +18,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   token: null,
   loading: false,
+  hydrated: false,
 
   login: async (email, password) => {
     set({ loading: true });
@@ -78,15 +80,24 @@ export const useAuthStore = create<AuthState>((set) => ({
 },
 
 
-  hydrate: async () => {
-    const token = await SecureStore.getItemAsync("token");
-    if (!token) return;
+hydrate: async () => {
+  const token = await SecureStore.getItemAsync("token");
 
-    try {
-      const res = await authAPI.me();
-      set({ token, user: res.data });
-    } catch {
-      await SecureStore.deleteItemAsync("token");
-    }
-  },
+  if (!token) {
+    set({ hydrated: true });
+    return;
+  }
+
+  try {
+    const res = await authAPI.me();
+    set({
+      token,
+      user: res.data,
+      hydrated: true,
+    });
+  } catch (e) {
+    await SecureStore.deleteItemAsync("token");
+    set({ token: null, user: null, hydrated: true });
+  }
+},
 }));

@@ -1,56 +1,78 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { View, Platform } from "react-native";
+import { Platform } from "react-native";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
+  // 2. Get the actual safe area insets for this specific device
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarShowLabel: false, // Hiding labels for a cleaner look, optional
-        tabBarActiveTintColor: "#7c3aed", // Tailwind violet-600
-        tabBarInactiveTintColor: "#9ca3af", // Tailwind gray-400
+        tabBarShowLabel: true,
+        tabBarActiveTintColor: "#7c3aed",
+        tabBarInactiveTintColor: "#9ca3af",
         
-        // Floating Tab Bar Style
         tabBarStyle: {
-          position: 'absolute',
-          bottom: Platform.OS === 'ios' ? 25 : 20,
-          left: 20,
-          right: 20,
-          height: 60,
           backgroundColor: 'white',
-          borderRadius: 25,
-          borderTopWidth: 0,
-          elevation: 10, // Android shadow
-          shadowColor: '#000', // iOS shadow
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.1,
-          shadowRadius: 10,
+          borderTopWidth: 1,
+          borderTopColor: '#f3f4f6',
+          elevation: 0,
+          
+          
+          height: 60 + insets.bottom, 
+          paddingTop: 8,
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '500',
+          marginBottom: 4, // Add a little bottom margin to the label
         },
       }}
     >
       <Tabs.Screen
-        name="index" // Use 'index' for the default route in the folder
+        name="index"
         options={{
           title: "Home",
           tabBarIcon: ({ color, focused }) => (
-            <View className="items-center justify-center top-2">
-              <Ionicons
-                name={focused ? "home" : "home-outline"}
-                size={24}
-                color={color}
-              />
-              {/* Active Indicator Dot */}
-              {focused && (
-                <View className="w-1.5 h-1.5 rounded-full bg-violet-600 mt-1" />
-              )}
-            </View>
+              <Ionicons name={focused ? "home" : "home-outline"} size={26} color={color} />
           ),
         }}
       />
 
-      
+      <Tabs.Screen
+        name="library"
+        options={{
+          title: "Your Library",
+          tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? "library" : "library-outline"} size={26} color={color} />
+          ),
+        }}
+      />
+
+       <Tabs.Screen
+        name="create"
+        options={{
+          title: "Create",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "add-circle" : "add-circle-outline"} size={30} color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? "person" : "person-outline"} size={26} color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }
