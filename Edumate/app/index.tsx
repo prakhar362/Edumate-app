@@ -3,19 +3,28 @@ import { View, Text, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import { useAuthStore } from '@/store/auth.store';
 
 
 export default function Index() {
-  const router = useRouter();
+   const router = useRouter();
+  const hydrate = useAuthStore((s) => s.hydrate);
+  const token = useAuthStore((s) => s.token);
+  const hydrated = useAuthStore((s) => s.hydrated);
 
   useEffect(() => {
-    // Navigate to login after 5 seconds
-    const timer = setTimeout(() => {
-      router.replace('/(auth)/signup');
-    }, 5000);
-
-    return () => clearTimeout(timer);
+    hydrate();
   }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+
+    if (token) {
+      router.replace("/(tabs)");
+    } else {
+      router.replace("/(auth)/login");
+    }
+  }, [hydrated]);
 
   return (
     <View className="flex-1">

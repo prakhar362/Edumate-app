@@ -82,6 +82,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
 hydrate: async () => {
   const token = await SecureStore.getItemAsync("token");
+  console.log("Hydrating auth store, found token:", token); 
 
   if (!token) {
     set({ hydrated: true });
@@ -89,7 +90,7 @@ hydrate: async () => {
   }
 
   try {
-    const res = await authAPI.me();
+    const res = await authAPI.me(token);
     set({
       token,
       user: res.data,

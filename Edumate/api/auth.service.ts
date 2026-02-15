@@ -11,8 +11,13 @@ export const authAPI = {
     return client.post("/api/auth/register", {name,email,password});
   },
 
-  me: () =>
-    client.get("/api/auth/me"),
+  me: (token: string) =>
+  client.get("/api/auth/me", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }),
+
 
   googleLogin: (idToken: string) =>
     client.post("/api/auth/google", {id_token: idToken}),
