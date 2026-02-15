@@ -1,16 +1,29 @@
-import api from "./client";
+import client from "./client";
 
-export const uploadPdf = (formData: FormData) =>
-  api.post("/api/summarize/pdf", formData);
+export const SummaryAPI={
+  uploadPdf :async  (formData: FormData) =>{
+    console.log("API uploadPdf called", formData);
+    return client.post("/api/summarize/pdf", formData);
+  },
 
-export const getSummaries = () =>
-  api.get("/api/summarize/summaries");
+ getSummaries:async () =>{
+  console.log("API getSummaries called");
+  return client.get("/api/summarize/summaries");
+ },
 
-export const getSummary = (id: string) =>
-  api.get(`/api/summarize/summaries/${id}`);
+getSummary:async (id: string) =>{
+  console.log("API getSummary called", id);
+  return client.get(`/api/summarize/summaries/${id}`);
+},
 
-export const getQuiz = (id: string) =>
-  api.get(`/api/summarize/quiz/${id}`);
+getQuiz:async (id: string) =>{
+  console.log("API getQuiz called", id);
+  return client.get(`/api/summarize/quiz/${id}`);
+},
+submitQuiz:async (id: string, answers: any) =>{
+  console.log("API submitQuiz called", id, answers);
+  return client.post(`/api/summarize/quiz/submit/${id}`, answers);
+}
 
-export const submitQuiz = (id: string, answers: any) =>
-  api.post(`/api/summarize/quiz/submit/${id}`, answers);
+}
+
