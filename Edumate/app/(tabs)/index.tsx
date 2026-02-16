@@ -101,6 +101,7 @@ export default function Home() {
 
   return (
     <View className="flex-1 bg-slate-50">
+
       <StatusBar style="light" />
 
       {/* Background Decorative Mesh Gradient (Subtle) */}
@@ -113,7 +114,7 @@ export default function Home() {
         <View className="absolute top-10 -left-10 w-48 h-48 bg-violet-200/30 rounded-full blur-3xl" />
       </View>
 
-      <SafeAreaView className="flex-1">
+      <SafeAreaView className="flex-1 " edges={['top']}>
           {/* --- Header --- */}
           <View className="px-6 pt-2 pb-2 flex-row justify-between items-center">
             <View>

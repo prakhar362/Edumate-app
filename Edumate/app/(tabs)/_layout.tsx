@@ -24,7 +24,7 @@ export default function TabLayout() {
           
           
           height: 60 + insets.bottom, 
-          paddingTop: 8,
+          paddingTop: 4,
           paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
         },
         tabBarLabelStyle: {

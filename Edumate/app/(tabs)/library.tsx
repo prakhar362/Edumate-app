@@ -1,22 +1,53 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity, FlatList, ActivityIndicator, Image } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  FlatList,
+  ActivityIndicator,
+  Image,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { PlaylistAPI } from "@/api/playlist.service";
 import { SummaryAPI } from "@/api/summarize.service";
 
-// Simple Filter Pill Component (Inline for safety)
-const FilterPill = ({ label, active, onPress }: { label: string, active: boolean, onPress: () => void }) => (
-  <TouchableOpacity 
+// --- Asset Constants (Replace with local require() if you have assets) ---
+const IMAGES = {
+  // Bookshelf/Library Icon for Playlists
+  playlist: "https://cdn-icons-png.flaticon.com/512/3389/3389081.png", 
+  // Note/Paper Icon for Summaries
+  summary: "https://thumbs.dreamstime.com/b/document-grammar-control-icon-white-background-53432685.jpg",
+  // Empty State Illustration
+  empty: "https://cdn-icons-png.flaticon.com/512/7486/7486744.png" 
+};
+
+// --- Component: Filter Pill ---
+const FilterPill = ({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) => (
+  <TouchableOpacity
     onPress={onPress}
-    className={`px-6 py-2 rounded-full mr-3 border ${
-      active 
-        ? 'bg-violet-600 border-violet-600' 
-        : 'bg-transparent border-gray-300'
+    activeOpacity={0.8}
+    className={`px-6 py-2.5 rounded-full mr-3 border ${
+      active
+        ? "bg-violet-600 border-violet-600"
+        : "bg-white border-slate-200"
     }`}
+    style={!active ? { shadowColor: "#000", shadowOpacity: 0.03, shadowRadius: 5, elevation: 1 } : {}}
   >
-    <Text className={`font-bold ${active ? 'text-white' : 'text-gray-500'}`}>
+    <Text
+      className={`font-bold text-sm ${
+        active ? "text-white" : "text-slate-600"
+      }`}
+    >
       {label}
     </Text>
   </TouchableOpacity>
@@ -24,40 +55,35 @@ const FilterPill = ({ label, active, onPress }: { label: string, active: boolean
 
 export default function Library() {
   const router = useRouter();
-  const [filter, setFilter] = useState('All'); // 'All', 'Summaries', 'Playlists'
+  const [filter, setFilter] = useState("All");
   const [loading, setLoading] = useState(true);
-  
-  // Store raw data
+
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [summaries, setSummaries] = useState<any[]>([]);
 
-  // Fetch Data on Mount
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
-        // 1. Fetch Playlists safely
+
         try {
-            const pRes = await PlaylistAPI.getPlayLists();
-            setPlaylists(pRes?.data || []);
+          const pRes = await PlaylistAPI.getPlayLists();
+          setPlaylists(pRes?.data || []);
         } catch (err) {
-            console.log("Library Playlist Error", err);
+          console.log("Playlist error", err);
         }
 
-        // 2. Fetch Summaries safely
         try {
-             // Check if API exists to prevent crash
-            if (SummaryAPI && typeof SummaryAPI.getSummaries === 'function') {
-                const sRes = await SummaryAPI.getSummaries();
-                setSummaries(sRes?.data || []);
-            }
+          if (
+            SummaryAPI &&
+            typeof SummaryAPI.getSummaries === "function"
+          ) {
+            const sRes = await SummaryAPI.getSummaries();
+            setSummaries(sRes?.data || []);
+          }
         } catch (err) {
-            console.log("Library Summary Error", err);
+          console.log("Summary error", err);
         }
-
-      } catch (e) {
-        console.log("Library Load Error", e);
       } finally {
         setLoading(false);
       }
@@ -66,34 +92,26 @@ export default function Library() {
     fetchData();
   }, []);
 
-  // Compute Filtered Data
   const getFilteredData = () => {
-    // Normalize Playlists to common shape
-    const normalizedPlaylists = playlists.map(p => ({
-        id: p._id || p.id,
-        type: 'playlist',
-        title: p.title || p.name || 'Untitled Playlist',
-        subtitle: `${p.items?.length || 0} items`,
-        icon: 'musical-notes',
-        color: '#7c3aed', // Violet
-        raw: p
+    const normalizedPlaylists = playlists.map((p) => ({
+      id: p._id || p.id,
+      type: "playlist",
+      title: p.title || p.name || "Untitled Playlist",
+      subtitle: `${p.items?.length || 0} items`,
+      image: IMAGES.playlist, // Using the Bookshelf Image
     }));
 
-    // Normalize Summaries to common shape
-    const normalizedSummaries = summaries.map(s => ({
-        id: s._id || s.id,
-        type: 'summary',
-        title: s.name || s.title || 'Untitled Summary',
-        subtitle: s.filename || 'Audio File',
-        icon: 'book',
-        color: '#10b981', // Emerald
-        raw: s
+    const normalizedSummaries = summaries.map((s) => ({
+      id: s._id || s.id,
+      type: "summary",
+      title: s.name || s.title || "Untitled Summary",
+      subtitle: s.filename || "Audio File",
+      image: IMAGES.summary, // Using the Note Image
     }));
 
-    if (filter === 'Playlists') return normalizedPlaylists;
-    if (filter === 'Summaries') return normalizedSummaries;
-    
-    // 'All' - Combine them
+    if (filter === "Playlists") return normalizedPlaylists;
+    if (filter === "Summaries") return normalizedSummaries;
+
     return [...normalizedPlaylists, ...normalizedSummaries];
   };
 
@@ -108,71 +126,138 @@ export default function Library() {
   }
 
   return (
-    <View className="flex-1 bg-white">
-      <SafeAreaView className="flex-1">
-        
+    <View className="flex-1 bg-slate-50">
+      <SafeAreaView edges={['top']} className="flex-1">
+
         {/* Header */}
-        <View className="px-6 pt-4 pb-4 flex-row items-center justify-between">
-            <View className="flex-row items-center">
-                 <View className="w-10 h-10 rounded-full bg-violet-100 items-center justify-center mr-3 border border-violet-200">
-                    <Text className="text-violet-700 font-bold text-lg">P</Text>
-                 </View>
-                 <Text className="text-xl font-bold text-gray-900">Your Library</Text>
-            </View>
-            <TouchableOpacity className="bg-gray-50 p-2 rounded-full">
-                <Ionicons name="add" size={24} color="#374151" />
-            </TouchableOpacity>
+        <View className="px-6 pt-6 pb-6 bg-slate-50">
+          <Text className="text-3xl font-extrabold text-slate-900 tracking-tight">
+            Your Library
+          </Text>
+          <Text className="text-slate-500 font-medium mt-1">
+            Manage your learning collection
+          </Text>
         </View>
 
-        {/* Filter Pills */}
-        <View className="px-6 mb-2 h-14">
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center' }}>
-                <FilterPill label="All" active={filter === 'All'} onPress={() => setFilter('All')} />
-                <FilterPill label="Playlists" active={filter === 'Playlists'} onPress={() => setFilter('Playlists')} />
-                <FilterPill label="Summaries" active={filter === 'Summaries'} onPress={() => setFilter('Summaries')} />
-            </ScrollView>
+        {/* Filters */}
+        <View className="px-6 mb-6">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingRight: 20 }}
+          >
+            <FilterPill
+              label="All"
+              active={filter === "All"}
+              onPress={() => setFilter("All")}
+            />
+            <FilterPill
+              label="Playlists"
+              active={filter === "Playlists"}
+              onPress={() => setFilter("Playlists")}
+            />
+            <FilterPill
+              label="Summaries"
+              active={filter === "Summaries"}
+              onPress={() => setFilter("Summaries")}
+            />
+          </ScrollView>
         </View>
 
-        {/* List Content */}
+        {/* List */}
         <FlatList
-            data={displayData}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 100, paddingTop: 10 }}
-            ListEmptyComponent={
-                <View className="items-center justify-center py-20">
-                    <Ionicons name="file-tray-outline" size={48} color="#e5e7eb" />
-                    <Text className="text-gray-400 mt-2">No items found</Text>
-                </View>
-            }
-            renderItem={({ item }) => (
-                <TouchableOpacity 
-                    className="flex-row items-center mb-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm"
-                    onPress={() => router.push(item.type === 'playlist' ? `/playlist/${item.id}` : `/summary/${item.id}`)}
-                >
-                    {/* Icon Box */}
-                    <View className={`w-16 h-16 rounded-2xl bg-gray-50 mr-4 items-center justify-center`}>
-                        <Ionicons 
-                            name={item.icon as any} 
-                            size={24} 
-                            color={item.color} 
-                        />
-                    </View>
-                    
-                    {/* Text Info */}
-                    <View className="flex-1">
-                        <Text className="text-base font-bold text-gray-900 mb-1">{item.title}</Text>
-                        <View className="flex-row items-center">
-                            <Text className={`text-xs font-bold mr-2 uppercase tracking-wider ${item.type === 'playlist' ? 'text-violet-500' : 'text-emerald-500'}`}>
-                                {item.type}
-                            </Text>
-                            <Text className="text-xs text-gray-400">• {item.subtitle}</Text>
-                        </View>
-                    </View>
+          data={displayData}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={{
+            paddingHorizontal: 24,
+            paddingBottom: 120,
+          }}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View className="items-center justify-center py-20 px-10">
+              <Image 
+                source={{ uri: IMAGES.empty }}
+                className="w-40 h-40 opacity-80 mb-6"
+                resizeMode="contain"
+              />
+              <Text className="text-xl font-bold text-slate-800 text-center">
+                It's empty here
+              </Text>
+              <Text className="text-slate-400 text-center mt-2 leading-5">
+                Start by creating a new playlist or summarizing a lecture to fill up your library.
+              </Text>
+            </View>
+          }
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              activeOpacity={0.9}
+              className="flex-row items-center mb-4 bg-white p-4 rounded-3xl border border-slate-100"
+              style={{
+                shadowColor: "#64748b",
+                shadowOpacity: 0.08,
+                shadowRadius: 12,
+                shadowOffset: { width: 0, height: 4 },
+                elevation: 3,
+              }}
+              onPress={() =>
+                router.push(
+                  item.type === "playlist"
+                    ? `/playlist/${item.id}`
+                    : `/summary/${item.id}`
+                )
+              }
+            >
+              {/* Image Container */}
+              <View
+                className={`w-16 h-16 rounded-2xl mr-4 items-center justify-center ${
+                  item.type === "playlist"
+                    ? "bg-violet-50"
+                    : "bg-emerald-50"
+                }`}
+              >
+                <Image 
+                    source={{ uri: item.image }}
+                    className="w-10 h-10"
+                    resizeMode="contain"
+                />
+              </View>
 
-                    <Ionicons name="chevron-forward" size={20} color="#e5e7eb" />
-                </TouchableOpacity>
-            )}
+              {/* Text Content */}
+              <View className="flex-1 justify-center">
+                <Text className="text-[17px] font-bold text-slate-800 mb-1" numberOfLines={1}>
+                  {item.title}
+                </Text>
+                
+                <View className="flex-row items-center">
+                    <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-2">
+                        {item.type}
+                    </Text>
+                    <View className="w-1 h-1 rounded-full bg-slate-300 mr-2" />
+                    <Text className="text-xs text-slate-400 font-medium">
+                        {item.subtitle}
+                    </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          )}
         />
+
+        {/* Floating Add Button */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          className="absolute bottom-8 right-6 bg-slate-900 w-16 h-16 rounded-full items-center justify-center"
+          style={{
+            shadowColor: "#0f172a",
+            shadowOpacity: 0.4,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 8 },
+            elevation: 8,
+          }}
+        >
+          {/* Using text for simplicity, or use an Icon */}
+          <Text className="text-white text-3xl font-light mb-1">+</Text>
+        </TouchableOpacity>
+
       </SafeAreaView>
     </View>
   );
