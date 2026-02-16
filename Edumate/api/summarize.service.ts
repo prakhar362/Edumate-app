@@ -1,10 +1,15 @@
 import client from "./client";
 
 export const SummaryAPI={
-  uploadPdf :async  (formData: FormData) =>{
-    console.log("API uploadPdf called", formData);
-    return client.post("/api/summarize/pdf", formData);
-  },
+  uploadPdf: async (formData: FormData) => {
+  console.log("API uploadPdf called", formData);
+  
+  return client.post("/api/summarize/pdf", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+},
 
  getSummaries:async () =>{
   console.log("API getSummaries called");
