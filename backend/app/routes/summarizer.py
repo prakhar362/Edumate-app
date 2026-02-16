@@ -1,13 +1,13 @@
 import os
-
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from io import BytesIO
+from fastapi import APIRouter, Depends, File, Form, UploadFile,HTTPException
 
 from app.auth.deps import get_current_user
 from app.models.schemas import QuizQuestion, SummarizeResponse
 from app.services import chromadb_service, gemini_service, mongodb_service, pdf_service, tts_service
 from app.services.cloudinary_services import (
-    upload_audio_to_cloudinary,
-    upload_pdf_to_cloudinary,
+    upload_audio_bytes_to_cloudinary,
+    upload_pdf_bytes_to_cloudinary,
 )
 
 # Make sure directories exist for temporary files
@@ -15,6 +15,7 @@ os.makedirs("uploads", exist_ok=True)
 os.makedirs("audio", exist_ok=True)
 
 router = APIRouter()
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
 
 @router.post("/pdf", response_model=SummarizeResponse)
@@ -23,51 +24,47 @@ async def summarize_pdf(
     name: str = Form(...),
     current_user=Depends(get_current_user),
 ):
-    # Save uploaded file locally (temporary)
-    file_path = f"uploads/{file.filename}"
-    with open(file_path, "wb") as f:
-        f.write(await file.read())
+    contents = await file.read()
 
-    # Upload PDF to Cloudinary
-    pdf_url = upload_pdf_to_cloudinary(file_path)
-    print("✅ PDF uploaded to Cloudinary:", pdf_url)
+    if len(contents) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="File exceeds 10MB limit.")
 
-    # Base ID without extension
+    # -------- Upload PDF directly from memory --------
+    pdf_url = upload_pdf_bytes_to_cloudinary(contents, file.filename)
+    print(f"PDF uploaded to Cloudinary: {pdf_url}")
+
     base_id = os.path.splitext(file.filename)[0]
 
-    print("✅ PDF saved locally:", file_path)
-
-    # Extract chunks and embeddings (from local temp file)
-    chunks = pdf_service.extract_chunks(file_path)
+    # -------- Extract PDF text from memory --------
+    chunks = pdf_service.extract_chunks_from_bytes(contents)
     embeddings = pdf_service.get_embeddings(chunks)
+    print(f"Extracted {len(chunks)} chunks from PDF.")
 
-    # Store in ChromaDB
     chromadb_service.store_chunks(chunks, embeddings, base_id)
-    print("✅ Chunks and embeddings stored in ChromaDB with base ID:", base_id)
-
-    # Fetch combined content
     combined = chromadb_service.fetch_combined(base_id)
 
-    # Generate summary
     summary = gemini_service.get_summary(combined)
-    print("✅ Summary generated from Gemini API")
+    print("Summary generated.")
 
-    # Store summary in ChromaDB
     chromadb_service.store_summary(
-        summary, collection_name=f"{base_id}_summary", pdf_filename=file.filename
+        summary,
+        collection_name=f"{base_id}_summary",
+        pdf_filename=file.filename,
     )
+    print("Summary stored in ChromaDB.")
 
-    # Generate audio locally first
-    audio_path = f"audio/{base_id}_summary.mp3"
-    await tts_service.generate_audio(summary, audio_path)
+    # -------- Generate audio in memory --------
+    audio_bytes = await tts_service.generate_audio_bytes(summary)
+    print("Audio generated from summary.")
 
-    # Upload audio to Cloudinary
-    audio_url = upload_audio_to_cloudinary(audio_path)
-    print("✅ Audio uploaded to Cloudinary:", audio_url)
+    audio_url = upload_audio_bytes_to_cloudinary(
+    audio_bytes,
+    f"{base_id}_summary.mp3"
+    )
+    print(f"Audio uploaded to Cloudinary: {audio_url}")
 
     user_id = str(current_user["id"])
 
-    # Store summary with Cloudinary URLs in MongoDB
     summary_id = mongodb_service.store_summary(
         summary_text=summary,
         pdf_filename=file.filename,
@@ -76,43 +73,16 @@ async def summarize_pdf(
         user_id=user_id,
         pdf_url=pdf_url,
     )
-    print("✅ Summary stored in MongoDB with ID:", summary_id)
-
-    # Generate quiz
-    try:
-        quiz_data = gemini_service.get_quiz(combined)
-
-        # quiz_data is already a list of dictionaries
-        quiz = [QuizQuestion(**q) for q in quiz_data]
-
-        # Store quiz in MongoDB
-        quiz_id = mongodb_service.store_quiz(
-            quiz_data, file.filename, summary_id, name, user_id
-        )
-
-    except Exception as e:
-        print("⚠️ Quiz generation failed:", e)
-        quiz = []
-        quiz_id = None
-
-    # Optionally clean up local files
-    try:
-        if os.path.exists(file_path):
-            os.remove(file_path)
-        if os.path.exists(audio_path):
-            os.remove(audio_path)
-    except Exception:
-        # Non-fatal if cleanup fails
-        pass
+    print(f"Summary stored in MongoDB with ID: {summary_id}")
 
     return SummarizeResponse(
         name=name,
         score=0,
         summary=summary,
         audio_path=audio_url,
-        quiz=quiz,
+        quiz=[],
         summary_id=summary_id,
-        quiz_id=quiz_id,
+        quiz_id=None,
         pdf_url=pdf_url,
     )
 

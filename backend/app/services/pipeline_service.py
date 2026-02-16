@@ -1,5 +1,5 @@
 import os
-from fastapi import UploadFile
+from fastapi import UploadFile, HTTPException
 from app.services import (
     pdf_service,
     chromadb_service,
@@ -9,11 +9,7 @@ from app.services import (
     mongodb_service,
 )
 
-UPLOAD_DIR = "uploads"
-AUDIO_DIR = "audio"
-
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-os.makedirs(AUDIO_DIR, exist_ok=True)
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
 
 async def process_pdf_pipeline(
@@ -21,60 +17,69 @@ async def process_pdf_pipeline(
     file: UploadFile,
     name: str | None = None,
 ) -> dict:
-    # -------------------------
-    # 1️. Save PDF locally
-    # -------------------------
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
 
-    with open(file_path, "wb") as f:
-        f.write(await file.read())
+    # -------------------------
+    # 1️⃣ Read file in memory
+    # -------------------------
+    contents = await file.read()
+
+    if len(contents) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail="File exceeds 10MB limit."
+        )
 
     base_id = os.path.splitext(file.filename)[0]
     name = name or file.filename
 
     # -------------------------
-    # 2️. Upload PDF to Cloudinary
+    # 2️⃣ Upload PDF to Cloudinary (bytes)
     # -------------------------
-    pdf_url = cloudinary_services.upload_pdf_to_cloudinary(file_path)
+    pdf_url = cloudinary_services.upload_pdf_bytes_to_cloudinary(
+        contents,
+        file.filename
+    )
     print(f"✅ PDF uploaded to Cloudinary: {pdf_url}")
 
     # -------------------------
-    # 3️. Extract chunks + embeddings
+    # 3️⃣ Extract chunks + embeddings (from memory)
     # -------------------------
-    chunks = pdf_service.extract_chunks(file_path)
+    chunks = pdf_service.extract_chunks_from_bytes(contents)
     embeddings = pdf_service.get_embeddings(chunks)
-    print(f"✅ Extracted {len(chunks)} chunks and generated embeddings")
+    print(f"✅ Extracted {len(chunks)} chunks")
 
     chromadb_service.store_chunks(
         chunks=chunks,
         embeddings=embeddings,
         collection_name=base_id,
     )
-    print(f"✅ Chunks and embeddings stored in ChromaDB with base ID: {base_id}")
 
     # -------------------------
-    # 4️. Fetch combined content
+    # 4️⃣ Fetch combined content
     # -------------------------
     combined = chromadb_service.fetch_combined(base_id)
 
     # -------------------------
-    # 5️. Generate summary
+    # 5️⃣ Generate summary
     # -------------------------
     summary = gemini_service.get_summary(combined)
     print("✅ Summary generated")
 
     # -------------------------
-    # 6.Generate audio
+    # 6️⃣ Generate audio in memory
     # -------------------------
-    local_audio_path = os.path.join(AUDIO_DIR, f"{base_id}_summary.mp3")
+    audio_bytes = await tts_service.generate_audio_bytes(summary)
+    print("✅ Audio generated in memory")
 
-    await tts_service.generate_audio(summary, local_audio_path)
-    print(f"✅ Audio generated at: {local_audio_path}")
-
-    audio_url = cloudinary_services.upload_audio_to_cloudinary(local_audio_path)
+    audio_url = cloudinary_services.upload_audio_bytes_to_cloudinary(
+        audio_bytes,
+        f"{base_id}_summary.mp3"
+    )
     print(f"✅ Audio uploaded to Cloudinary: {audio_url}")
 
-    # Store summary in MongoDB
+    # -------------------------
+    # 7️⃣ Store summary in MongoDB
+    # -------------------------
     summary_id = mongodb_service.store_summary(
         summary_text=summary,
         pdf_filename=file.filename,
@@ -83,10 +88,10 @@ async def process_pdf_pipeline(
         user_id=user_id,
         pdf_url=pdf_url,
     )
-    print(f"✅ Summary stored in MongoDB with ID: {summary_id}")
+    print(f"✅ Summary stored in MongoDB: {summary_id}")
 
     # -------------------------
-    # 7. Generate quiz (NON-BLOCKING)
+    # 8️⃣ Generate quiz (non-blocking safe)
     # -------------------------
     quiz_id = None
     try:
@@ -103,20 +108,8 @@ async def process_pdf_pipeline(
     except Exception as e:
         print("⚠️ Quiz generation failed:", e)
 
-   
     # -------------------------
-    # 8️. Cleanup local files
-    # -------------------------
-    try:
-        if os.path.exists(file_path):
-            os.remove(file_path)
-        if os.path.exists(local_audio_path):
-            os.remove(local_audio_path)
-    except Exception:
-        pass  # non-fatal
-
-    # -------------------------
-    # 9️. Return for playlist
+    # 9️⃣ Return result
     # -------------------------
     return {
         "summary_id": summary_id,

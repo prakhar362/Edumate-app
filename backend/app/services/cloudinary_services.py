@@ -24,51 +24,42 @@ def validate_file_size(file_path):
             detail="File size exceeds 10MB limit. Please upload a smaller file."
         )
 
+from io import BytesIO
 
-def upload_audio_to_cloudinary(file_path, public_id=None):
+def upload_pdf_bytes_to_cloudinary(file_bytes, filename, public_id=None):
     try:
-        validate_file_size(file_path)
-
         response = cloudinary.uploader.upload(
-            file_path,
-            resource_type="video",
-            folder="summaries/audio/",
-            public_id=public_id,
-            overwrite=True,
-        )
-        return response.get("secure_url")
-
-    except BadRequest as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-    except Exception:
-        raise HTTPException(
-            status_code=500,
-            detail="Audio upload failed."
-        )
-
-
-def upload_pdf_to_cloudinary(file_path, public_id=None):
-    try:
-        validate_file_size(file_path)
-
-        response = cloudinary.uploader.upload(
-            file_path,
+            BytesIO(file_bytes),
             resource_type="raw",
             folder="summaries/pdfs/",
             public_id=public_id,
             overwrite=True,
         )
-        return response.get("secure_url")
+        return response["secure_url"]
 
     except BadRequest:
-        raise HTTPException(
-            status_code=400,
-            detail="PDF exceeds 10MB Cloudinary limit."
-        )
+        raise HTTPException(status_code=400, detail="PDF exceeds 10MB limit.")
 
     except Exception:
-        raise HTTPException(
-            status_code=500,
-            detail="PDF upload failed."
+        raise HTTPException(status_code=500, detail="PDF upload failed.")
+
+from io import BytesIO
+
+def upload_audio_bytes_to_cloudinary(audio_bytes: bytes, filename: str):
+    try:
+        file_like = BytesIO(audio_bytes)
+        file_like.name = filename   # 🔥 REQUIRED
+
+        response = cloudinary.uploader.upload(
+            file_like,
+            resource_type="video",
+            folder="summaries/audio/",
+            overwrite=True,
+            format="mp3",
         )
+
+        return response["secure_url"]
+
+    except Exception as e:
+        print("🔥 CLOUDINARY AUDIO ERROR:", e)
+        raise HTTPException(status_code=500, detail=str(e))

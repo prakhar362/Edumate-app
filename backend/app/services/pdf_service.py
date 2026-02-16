@@ -11,8 +11,10 @@ def get_model():
     return _model
 
 
-def extract_chunks(pdf_path: str):
-    doc = fitz.open(pdf_path)
+from io import BytesIO
+
+def extract_chunks_from_bytes(pdf_bytes: bytes):
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     full_text = ""
 
     for page in doc:
