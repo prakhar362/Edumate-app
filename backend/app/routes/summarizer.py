@@ -30,9 +30,12 @@ async def summarize_pdf(
 
     # Upload PDF to Cloudinary
     pdf_url = upload_pdf_to_cloudinary(file_path)
+    print("✅ PDF uploaded to Cloudinary:", pdf_url)
 
     # Base ID without extension
     base_id = os.path.splitext(file.filename)[0]
+
+    print("✅ PDF saved locally:", file_path)
 
     # Extract chunks and embeddings (from local temp file)
     chunks = pdf_service.extract_chunks(file_path)
@@ -40,12 +43,14 @@ async def summarize_pdf(
 
     # Store in ChromaDB
     chromadb_service.store_chunks(chunks, embeddings, base_id)
+    print("✅ Chunks and embeddings stored in ChromaDB with base ID:", base_id)
 
     # Fetch combined content
     combined = chromadb_service.fetch_combined(base_id)
 
     # Generate summary
     summary = gemini_service.get_summary(combined)
+    print("✅ Summary generated from Gemini API")
 
     # Store summary in ChromaDB
     chromadb_service.store_summary(
@@ -58,6 +63,7 @@ async def summarize_pdf(
 
     # Upload audio to Cloudinary
     audio_url = upload_audio_to_cloudinary(audio_path)
+    print("✅ Audio uploaded to Cloudinary:", audio_url)
 
     user_id = str(current_user["id"])
 
@@ -70,6 +76,7 @@ async def summarize_pdf(
         user_id=user_id,
         pdf_url=pdf_url,
     )
+    print("✅ Summary stored in MongoDB with ID:", summary_id)
 
     # Generate quiz
     try:
