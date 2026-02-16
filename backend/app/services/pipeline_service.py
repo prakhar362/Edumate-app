@@ -36,18 +36,21 @@ async def process_pdf_pipeline(
     # 2️. Upload PDF to Cloudinary
     # -------------------------
     pdf_url = cloudinary_services.upload_pdf_to_cloudinary(file_path)
+    print(f"✅ PDF uploaded to Cloudinary: {pdf_url}")
 
     # -------------------------
     # 3️. Extract chunks + embeddings
     # -------------------------
     chunks = pdf_service.extract_chunks(file_path)
     embeddings = pdf_service.get_embeddings(chunks)
+    print(f"✅ Extracted {len(chunks)} chunks and generated embeddings")
 
     chromadb_service.store_chunks(
         chunks=chunks,
         embeddings=embeddings,
         collection_name=base_id,
     )
+    print(f"✅ Chunks and embeddings stored in ChromaDB with base ID: {base_id}")
 
     # -------------------------
     # 4️. Fetch combined content
@@ -58,6 +61,7 @@ async def process_pdf_pipeline(
     # 5️. Generate summary
     # -------------------------
     summary = gemini_service.get_summary(combined)
+    print("✅ Summary generated")
 
     # -------------------------
     # 6.Generate audio
@@ -65,8 +69,11 @@ async def process_pdf_pipeline(
     local_audio_path = os.path.join(AUDIO_DIR, f"{base_id}_summary.mp3")
 
     await tts_service.generate_audio(summary, local_audio_path)
+    print(f"✅ Audio generated at: {local_audio_path}")
 
     audio_url = cloudinary_services.upload_audio_to_cloudinary(local_audio_path)
+    print(f"✅ Audio uploaded to Cloudinary: {audio_url}")
+
     # Store summary in MongoDB
     summary_id = mongodb_service.store_summary(
         summary_text=summary,
@@ -76,6 +83,7 @@ async def process_pdf_pipeline(
         user_id=user_id,
         pdf_url=pdf_url,
     )
+    print(f"✅ Summary stored in MongoDB with ID: {summary_id}")
 
     # -------------------------
     # 7. Generate quiz (NON-BLOCKING)
