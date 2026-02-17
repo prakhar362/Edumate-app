@@ -1,4 +1,5 @@
 import os
+import re
 from io import BytesIO
 from fastapi import APIRouter, Depends, File, Form, UploadFile,HTTPException
 
@@ -44,7 +45,21 @@ async def summarize_pdf(
     combined = chromadb_service.fetch_combined(base_id)
 
     summary = gemini_service.get_summary(combined)
-    print("Summary generated.")
+    # Remove bold (**text**)
+    summary = re.sub(r"\*\*(.*?)\*\*", r"\1", summary)
+
+    # Remove bullet markers (*   or - )
+    summary = re.sub(r"^\s*[\*\-]\s+", "", summary, flags=re.MULTILINE)
+
+    # Remove extra backticks
+    summary = re.sub(r"`+", "", summary)
+
+    # Remove multiple spaces
+    summary = re.sub(r"\n\s*\n", "\n\n", summary)
+    summary=summary.strip()
+
+    print("Summary generated and cleaned.")
+    #print("summary:", summary)
 
     chromadb_service.store_summary(
         summary,
