@@ -268,7 +268,7 @@ export default function ProfileScreen() {
             className="flex-row items-center justify-center bg-red-500 py-4 rounded-2xl border border-red-100 mb-8"
           >
              <Ionicons name="log-out-outline" size={24} color="#ffffff" style={{ marginRight: 8 }} />
-             <Text className="text-white bg-red-500 font-bold text-lg">Sign Out</Text>
+             <Text className="text-white font-bold text-lg">Sign Out</Text>
           </TouchableOpacity>
           
           <Text className="text-center text-slate-300 text-xs pb-10">

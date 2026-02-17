@@ -50,6 +50,22 @@ export default function CreateScreen() {
   // 3. Summarize PDF
   const [pdfFile, setPdfFile] = useState<any>(null);
   const [pdfName, setPdfName] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // 1. Logic to set the default first item
+  useEffect(() => {
+    if (playlists.length > 0 && !selectedPlId) {
+      const firstPlaylist = playlists[0];
+      setSelectedPlId(firstPlaylist._id || firstPlaylist.id);
+    }
+  }, [playlists]);
+
+  // 2. Helper to get the name of the currently selected item for the Header
+  const getSelectedName = () => {
+    const selected = playlists.find(p => (p._id || p.id) === selectedPlId);
+    // If found, return title; if not (or list empty), return placeholder
+    return selected ? (selected.title || selected.name) : "Select a playlist";
+  };
 
   // --- 1. Data Loader (Exactly as requested) ---
   const loadData = async () => {
@@ -267,7 +283,7 @@ export default function CreateScreen() {
         
         {/* Header */}
         <View className="px-6 pt-6 pb-4">
-          <Text className="text-3xl font-extrabold text-slate-900">Create New</Text>
+          <Text className="text-2xl font-extrabold text-slate-900">Create Something New</Text>
           <Text className="text-slate-500 font-medium">Manage your content library</Text>
         </View>
 
@@ -307,23 +323,23 @@ export default function CreateScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1 justify-end bg-black/50">
           <View className="bg-white rounded-t-3xl p-6 h-[60%]">
             <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-xl font-bold text-slate-900">Create Playlist</Text>
+              <Text className="text-xl font-bold text-slate-900">Create Playlist:</Text>
               <TouchableOpacity onPress={resetForms} className="bg-slate-100 p-2 rounded-full">
                 <Ionicons name="close" size={20} color="#64748b" />
               </TouchableOpacity>
             </View>
 
-            <Text className="label">Title</Text>
+            <Text className="label font-semibold">Title</Text>
             <TextInput 
-              className="input-field" 
+              className="input-field border border-slate-200 rounded-xl" 
               placeholder="e.g. Finance Notes" 
               value={plTitle} 
               onChangeText={setPlTitle} 
             />
 
-            <Text className="label mt-4">Description</Text>
+            <Text className="label mt-4 font-semibold">Description</Text>
             <TextInput 
-              className="input-field h-24 text-top pt-3" 
+              className="input-field h-24 text-top pt-3 border border-slate-200 rounded-xl" 
               placeholder="What is this collection about?" 
               multiline 
               numberOfLines={3}
@@ -348,33 +364,70 @@ export default function CreateScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1 justify-end bg-black/50">
           <View className="bg-white rounded-t-3xl p-6 h-[75%]">
             <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-xl font-bold text-slate-900">Upload Item</Text>
+              <Text className="text-2xl font-bold text-slate-900">Upload Item:</Text>
               <TouchableOpacity onPress={resetForms} className="bg-slate-100 p-2 rounded-full">
                 <Ionicons name="close" size={20} color="#64748b" />
               </TouchableOpacity>
             </View>
 
-            <Text className="label">Select Playlist</Text>
-            <View className="h-32 mb-4">
-               <ScrollView nestedScrollEnabled className="border border-slate-200 rounded-xl bg-slate-50">
-                  {playlists.map((p) => (
-                    <TouchableOpacity 
-                      key={p._id || p.id} 
-                      onPress={() => setSelectedPlId(p._id || p.id)}
-                      className={`p-3 border-b border-slate-100 ${selectedPlId === (p._id || p.id) ? "bg-violet-100" : ""}`}
-                    >
-                      <Text className={`font-medium ${selectedPlId === (p._id || p.id) ? "text-violet-700" : "text-slate-600"}`}>
-                        {p.title || p.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                  {playlists.length === 0 && <Text className="p-4 text-slate-400 text-center">No playlists found. Create one first.</Text>}
-               </ScrollView>
-            </View>
+            <Text className="label font-semibold">Select Playlist</Text>
+           <View className="mb-4 z-50">
+      
+      {/* --- HEADER (Always Visible) --- */}
+      <TouchableOpacity 
+        onPress={() => setIsDropdownOpen(!isDropdownOpen)}
+        className="flex-row items-center justify-between p-3 border border-slate-200 rounded-xl bg-slate-50"
+      >
+        <Text className="font-medium text-slate-700">
+          {getSelectedName()}
+        </Text>
+        {/* Simple chevron indicator */}
+        <Text className="text-slate-500 text-xs">
+          {isDropdownOpen ? "▲" : "▼"}
+        </Text>
+      </TouchableOpacity>
 
-            <Text className="label">Display Name</Text>
+
+      {/* --- DROPDOWN BODY (Visible only when open) --- */}
+      {isDropdownOpen && (
+        <View className="mt-1 h-32 border border-slate-200 rounded-xl bg-slate-50 overflow-hidden">
+          <ScrollView nestedScrollEnabled>
+            {playlists.map((p) => (
+              <TouchableOpacity
+                key={p._id || p.id}
+                onPress={() => {
+                  setSelectedPlId(p._id || p.id);
+                  setIsDropdownOpen(false); // Close dropdown after selection
+                }}
+                className={`p-3 border-b border-slate-100 ${
+                  selectedPlId === (p._id || p.id) ? "bg-violet-100" : ""
+                }`}
+              >
+                <Text
+                  className={`font-medium ${
+                    selectedPlId === (p._id || p.id)
+                      ? "text-violet-700"
+                      : "text-slate-600"
+                  }`}
+                >
+                  {p.title || p.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            
+            {playlists.length === 0 && (
+              <Text className="p-4 text-slate-400 text-center">
+                No playlists found.
+              </Text>
+            )}
+          </ScrollView>
+        </View>
+      )}
+    </View>
+
+            <Text className="label font-semibold">Display Name</Text>
             <TextInput 
-              className="input-field mb-4" 
+              className="input-field mb-4 border border-slate-200 rounded-xl" 
               placeholder="Name for this file (Optional)" 
               value={uploadName}
               onChangeText={setUploadName} 
@@ -382,10 +435,10 @@ export default function CreateScreen() {
 
             <TouchableOpacity 
               onPress={() => pickDocument(setUploadFile)} 
-              className={`border-2 border-dashed rounded-xl p-4 items-center mb-6 ${uploadFile ? "border-violet-500 bg-violet-50" : "border-slate-300 bg-slate-50"}`}
+              className={`border-2 border-dashed rounded-xl p-4 items-center mb-6 ${uploadFile ? "border-violet-500 bg-violet-50" : "border-slate-500 bg-slate-50"}`}
             >
                <Ionicons name={uploadFile ? "document-text" : "cloud-upload"} size={32} color={uploadFile ? "#7c3aed" : "#94a3b8"} />
-               <Text className="text-slate-500 mt-2 font-medium">
+               <Text className="text-slate-700 mt-2 font-medium">
                  {uploadFile ? uploadFile.name : "Tap to select file"}
                </Text>
             </TouchableOpacity>
@@ -393,7 +446,7 @@ export default function CreateScreen() {
             <TouchableOpacity 
               onPress={handleUploadItem} 
               disabled={loading}
-              className="bg-cyan-600 py-4 rounded-xl items-center shadow-lg shadow-cyan-200"
+              className="bg-violet-600 py-4 rounded-xl items-center shadow-lg shadow-violet-200"
             >
               {loading ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold text-lg">Upload File</Text>}
             </TouchableOpacity>
@@ -406,15 +459,15 @@ export default function CreateScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1 justify-end bg-black/50">
           <View className="bg-white rounded-t-3xl p-6 h-[60%]">
             <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-xl font-bold text-slate-900">Summarize PDF</Text>
+              <Text className="text-xl font-bold text-slate-900">Summarize PDF:</Text>
               <TouchableOpacity onPress={resetForms} className="bg-slate-100 p-2 rounded-full">
                 <Ionicons name="close" size={20} color="#64748b" />
               </TouchableOpacity>
             </View>
 
-            <Text className="label">Summary Name</Text>
+            <Text className="label font-semibold">Summary Name</Text>
             <TextInput 
-              className="input-field mb-4" 
+              className="input-field mb-4 border border-slate-200 rounded-xl" 
               placeholder="e.g. Chapter 1 Summary" 
               value={pdfName} 
               onChangeText={setPdfName} 
@@ -422,10 +475,10 @@ export default function CreateScreen() {
 
             <TouchableOpacity 
               onPress={() => pickDocument(setPdfFile)} 
-              className={`border-2 border-dashed rounded-xl p-6 items-center mb-8 ${pdfFile ? "border-emerald-500 bg-emerald-50" : "border-slate-300 bg-slate-50"}`}
+              className={`border-2 border-dashed rounded-xl p-6 items-center mb-8 ${pdfFile ? "border-emerald-500 bg-emerald-50" : "border-slate-500 bg-slate-50"}`}
             >
                <Ionicons name={pdfFile ? "document-text" : "document-attach"} size={40} color={pdfFile ? "#10b981" : "#94a3b8"} />
-               <Text className="text-slate-500 mt-2 font-medium">
+               <Text className="text-slate-700 mt-2 font-medium">
                  {pdfFile ? pdfFile.name : "Select PDF File"}
                </Text>
             </TouchableOpacity>
@@ -433,7 +486,7 @@ export default function CreateScreen() {
             <TouchableOpacity 
               onPress={handleSummarizePdf} 
               disabled={loading}
-              className="bg-emerald-500 py-4 rounded-xl items-center shadow-lg shadow-emerald-200"
+              className="bg-violet-600 py-4 rounded-xl items-center shadow-lg shadow-violet-200"
             >
               {loading ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold text-lg">Generate Summary</Text>}
             </TouchableOpacity>
