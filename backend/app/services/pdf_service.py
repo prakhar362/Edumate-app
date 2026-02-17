@@ -1,18 +1,19 @@
 import fitz
 import re
+import os
+import requests
 
-_model = None
+API_URL = "https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2/pipeline/feature-extraction"
 
-def get_model():
-    global _model
-    if _model is None:
-        from sentence_transformers import SentenceTransformer
-        _model = SentenceTransformer("all-MiniLM-L6-v2")
-    return _model
+headers = {
+    "Authorization": f"Bearer {os.environ['HF_TOKEN']}",
+    "Content-Type": "application/json"
+}
 
 
-from io import BytesIO
-
+# ----------------------------
+# Extract PDF text from bytes
+# ----------------------------
 def extract_chunks_from_bytes(pdf_bytes: bytes):
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     full_text = ""
@@ -24,6 +25,25 @@ def extract_chunks_from_bytes(pdf_bytes: bytes):
     return [chunk.strip() for chunk in chunks if len(chunk.strip()) > 50]
 
 
+# ----------------------------
+# Get embeddings via API
+# ----------------------------
 def get_embeddings(chunks):
-    model = get_model()
-    return model.encode(chunks, show_progress_bar=False)
+    """
+    Calls HuggingFace Inference API to generate embeddings.
+    No local model loading.
+    """
+
+    response = requests.post(
+        API_URL,
+        headers=headers,
+        json={"inputs": chunks},
+        timeout=60
+    )
+
+    if response.status_code != 200:
+        raise Exception(f"HuggingFace API error: {response.text}")
+
+    embeddings = response.json()
+
+    return embeddings
