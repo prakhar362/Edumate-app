@@ -16,11 +16,11 @@ import { SummaryAPI } from "@/api/summarize.service";
 // --- Asset Constants (Replace with local require() if you have assets) ---
 const IMAGES = {
   // Bookshelf/Library Icon for Playlists
-  playlist: "https://cdn-icons-png.flaticon.com/512/3389/3389081.png", 
+  playlist: "https://cdn-icons-png.flaticon.com/512/3389/3389081.png",
   // Note/Paper Icon for Summaries
   summary: "https://thumbs.dreamstime.com/b/document-grammar-control-icon-white-background-53432685.jpg",
   // Empty State Illustration
-  empty: "https://cdn-icons-png.flaticon.com/512/7486/7486744.png" 
+  empty: "https://cdn-icons-png.flaticon.com/512/7486/7486744.png"
 };
 
 // --- Component: Filter Pill ---
@@ -36,17 +36,15 @@ const FilterPill = ({
   <TouchableOpacity
     onPress={onPress}
     activeOpacity={0.8}
-    className={`px-6 py-2.5 rounded-full mr-3 border ${
-      active
+    className={`px-6 py-2.5 rounded-full mr-3 border ${active
         ? "bg-violet-600 border-violet-600"
         : "bg-white border-slate-200"
-    }`}
+      }`}
     style={!active ? { shadowColor: "#000", shadowOpacity: 0.03, shadowRadius: 5, elevation: 1 } : {}}
   >
     <Text
-      className={`font-bold text-sm ${
-        active ? "text-white" : "text-slate-600"
-      }`}
+      className={`font-bold text-sm ${active ? "text-white" : "text-slate-600"
+        }`}
     >
       {label}
     </Text>
@@ -97,8 +95,11 @@ export default function Library() {
       id: p._id || p.id,
       type: "playlist",
       title: p.title || p.name || "Untitled Playlist",
+      // Store item count for passing to detail page
+      count: p.items?.length || 0,
+      description: p.description || "Collection",
       subtitle: `${p.items?.length || 0} items`,
-      image: IMAGES.playlist, // Using the Bookshelf Image
+      image: IMAGES.playlist,
     }));
 
     const normalizedSummaries = summaries.map((s) => ({
@@ -106,7 +107,7 @@ export default function Library() {
       type: "summary",
       title: s.name || s.title || "Untitled Summary",
       subtitle: s.filename || "Audio File",
-      image: IMAGES.summary, // Using the Note Image
+      image: IMAGES.summary,
     }));
 
     if (filter === "Playlists") return normalizedPlaylists;
@@ -175,7 +176,7 @@ export default function Library() {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View className="items-center justify-center py-20 px-10">
-              <Image 
+              <Image
                 source={{ uri: IMAGES.empty }}
                 className="w-40 h-40 opacity-80 mb-6"
                 resizeMode="contain"
@@ -199,26 +200,32 @@ export default function Library() {
                 shadowOffset: { width: 0, height: 4 },
                 elevation: 3,
               }}
-              onPress={() =>
-                router.push(
-                  item.type === "playlist"
-                    ? `/playlist/${item.id}`
-                    : `/summary/${item.id}`
-                )
-              }
+              onPress={() => {
+                if (item.type === "playlist") {
+                  router.push({
+                    pathname: `/playlist/${item.id}`,
+                    params: {
+                      title: item.title,
+                      description: item.description,
+                      count: item.count,
+                    },
+                  });
+                } else {
+                  router.push(`/summary/${item.id}`);
+                }
+              }}
             >
               {/* Image Container */}
               <View
-                className={`w-16 h-16 rounded-2xl mr-4 items-center justify-center ${
-                  item.type === "playlist"
+                className={`w-16 h-16 rounded-2xl mr-4 items-center justify-center ${item.type === "playlist"
                     ? "bg-violet-50"
                     : "bg-emerald-50"
-                }`}
+                  }`}
               >
-                <Image 
-                    source={{ uri: item.image }}
-                    className="w-10 h-10"
-                    resizeMode="contain"
+                <Image
+                  source={{ uri: item.image }}
+                  className="w-10 h-10"
+                  resizeMode="contain"
                 />
               </View>
 
@@ -227,15 +234,15 @@ export default function Library() {
                 <Text className="text-[17px] font-bold text-slate-800 mb-1" numberOfLines={1}>
                   {item.title}
                 </Text>
-                
+
                 <View className="flex-row items-center">
-                    <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-2">
-                        {item.type}
-                    </Text>
-                    <View className="w-1 h-1 rounded-full bg-slate-300 mr-2" />
-                    <Text className="text-xs text-slate-400 font-medium">
-                        {item.subtitle}
-                    </Text>
+                  <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-2">
+                    {item.type}
+                  </Text>
+                  <View className="w-1 h-1 rounded-full bg-slate-300 mr-2" />
+                  <Text className="text-xs text-slate-400 font-medium">
+                    {item.subtitle}
+                  </Text>
                 </View>
               </View>
             </TouchableOpacity>
