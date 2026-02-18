@@ -218,13 +218,16 @@ def get_summaries_for_user(user_id: str):
 
 
 def get_summary_for_user(summary_id: str, user_id: str):
-    """Get a single summary document for a user."""
+    """Get a single summary document for a user and include the associated quiz_id."""
     summaries_collection = db["summaries"]
+    quizzes_collection = db["quizzes"]  # 1. Access quizzes collection
+
     try:
         oid = ObjectId(summary_id)
     except Exception:
         return None
 
+    # 2. Fetch the summary document
     summary = summaries_collection.find_one(
         {"_id": oid, "user_id": user_id},
         {
@@ -236,7 +239,27 @@ def get_summary_for_user(summary_id: str, user_id: str):
             "user_id": 1,
         },
     )
-    return convert_mongo_doc(summary)
+
+    if not summary:
+        return None
+
+    # 3. Convert the MongoDB doc to a standard dict first
+    result = convert_mongo_doc(summary)
+
+    # 4. Find the associated quiz to get its ID
+    # We only need the _id field to save bandwidth
+    quiz = quizzes_collection.find_one(
+        {"summary_id": summary_id, "user_id": user_id}, 
+        {"_id": 1} 
+    )
+
+    # 5. Append the quiz_id to the result
+    if quiz:
+        result["quiz_id"] = str(quiz["_id"])
+    else:
+        result["quiz_id"] = None
+
+    return result
 
 
 def get_quiz_for_user(summary_id: str, user_id: str):

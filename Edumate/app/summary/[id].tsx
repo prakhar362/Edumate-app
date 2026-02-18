@@ -7,15 +7,22 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
-  Animated
+  Animated,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Slider from '@react-native-community/slider';
 import { Audio } from 'expo-av';
 import { SummaryAPI } from '@/api/summarize.service';
+import { PlaylistAPI } from '@/api/playlist.service';
 
 const { height } = Dimensions.get('window');
 
@@ -36,12 +43,26 @@ export default function SummaryPlayer() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  // Audio State
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [position, setPosition] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
 
+  // Playlist Modal State
+  const [modalVisible, setModalVisible] = useState(false);
+  const [playlists, setPlaylists] = useState<any[]>([]);
+  const [loadingPlaylists, setLoadingPlaylists] = useState(false);
+
+  // Dropdown & Form State
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
+  const [customName, setCustomName] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
+
+  // Layout & Animation Refs
+  const lineLayouts = useRef<{ y: number, height: number }[]>([]);
   const animatedValues = useRef<Animated.Value[]>([]).current;
 
   // ---------------- FETCH + LOAD ----------------
@@ -53,6 +74,8 @@ export default function SummaryPlayer() {
         const res = await SummaryAPI.getSummary(summaryId);
         const summaryData = res.data;
         setData(summaryData);
+        // Set default name for the input field
+        setCustomName(summaryData?.name || "");
 
         if (summaryData?.audio_path) {
           await loadAudio(summaryData.audio_path);
@@ -116,11 +139,65 @@ export default function SummaryPlayer() {
     setIsSeeking(false);
   };
 
-  const addToPlaylist = () => {
-    Alert.alert("Add to Playlist", "Opening playlist selection...");
+  // ---------------- PLAYLIST LOGIC ----------------
+
+  const openPlaylistModal = async () => {
+    setModalVisible(true);
+    setLoadingPlaylists(true);
+    // Reset form
+    setSelectedPlaylistId(null);
+    setIsDropdownOpen(false);
+    setCustomName(data?.name || "");
+
+    try {
+      const res = await PlaylistAPI.getPlayLists();
+      setPlaylists(res.data || []);
+    } catch (error) {
+      Alert.alert("Error", "Failed to fetch playlists");
+    } finally {
+      setLoadingPlaylists(false);
+    }
   };
 
-  // ---------------- LINE SYNC LOGIC ----------------
+  const getSelectedName = () => {
+    if (!selectedPlaylistId) return "Select a playlist...";
+    const pl = playlists.find(p => (p._id || p.id) === selectedPlaylistId);
+    return pl ? (pl.title || pl.name) : "Select a playlist...";
+  };
+
+  const handleAddItem = async () => {
+    if (!selectedPlaylistId) {
+      Alert.alert("Required", "Please select a playlist first.");
+      return;
+    }
+
+    setIsAdding(true);
+    try {
+      const summaryId = Array.isArray(id) ? id[0] : id;
+
+      const payload = {
+        name: customName || data?.name || "Untitled Summary",
+        summary_id: summaryId,
+        quiz_id: data?.quiz_id || "",
+        pdf_url: data?.pdf_url || "",
+        audio_path: data?.audio_path || ""
+      };
+
+      await PlaylistAPI.addItem(selectedPlaylistId, payload);
+
+      setModalVisible(false);
+      Alert.alert("Success", "Added to playlist successfully!");
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Could not add item to playlist.");
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  // ---------------- CONSTANTS & SCROLL ----------------
+  const CONTAINER_HEIGHT = 320;
+
   const lines =
     data?.summary
       ?.replace(/\*/g, '')
@@ -133,39 +210,45 @@ export default function SummaryPlayer() {
   const currentLineIndex =
     lineDuration ? Math.floor(position / lineDuration) : 0;
 
-  // Initialize animated values
   useEffect(() => {
     if (lines.length > 0) {
-      animatedValues.length = 0;
-      lines.forEach(() => {
-        animatedValues.push(new Animated.Value(0)); // 0 = inactive, 1 = active
-      });
+      if (animatedValues.length !== lines.length) {
+        animatedValues.length = 0;
+        lines.forEach(() => {
+          animatedValues.push(new Animated.Value(0.1));
+        });
+      }
     }
   }, [lines.length]);
 
-  // Animate highlight + auto scroll
   useEffect(() => {
-    animatedValues.forEach((anim, index) => {
-      const isActive = index === currentLineIndex;
+    if (animatedValues.length === 0) return;
 
-      Animated.timing(anim, {
-        toValue: isActive ? 1 : 0,
-        duration: 400, // Smooth transition
+    animatedValues.forEach((anim, index) => {
+      const distance = Math.abs(index - currentLineIndex);
+      let targetValue = 0.1;
+      if (distance === 0) targetValue = 1;
+      else if (distance === 1) targetValue = 0.4;
+
+      Animated.spring(anim, {
+        toValue: targetValue,
         useNativeDriver: true,
+        friction: 8,
+        tension: 40
       }).start();
     });
 
-    // Auto-scroll logic to keep active line near top/middle
     if (lyricsScrollRef.current && currentLineIndex >= 0) {
-      // Approximate height of a line (font size + margin) ~ 50px
-      // We subtract a buffer to keep the active line not at the very top
-      const scrollPos = currentLineIndex * 50;
-      lyricsScrollRef.current.scrollTo({
-        y: Math.max(0, scrollPos - 100), // Keep active line slightly down from top
-        animated: true,
-      });
+      const currentLayout = lineLayouts.current[currentLineIndex];
+      if (currentLayout) {
+        const scrollPos = currentLayout.y - (CONTAINER_HEIGHT / 2) + (currentLayout.height / 2);
+        lyricsScrollRef.current.scrollTo({
+          y: Math.max(0, scrollPos),
+          animated: true,
+        });
+      }
     }
-  }, [currentLineIndex]);
+  }, [currentLineIndex, lines.length]);
 
   // ---------------- LOADING ----------------
   if (loading) {
@@ -206,7 +289,7 @@ export default function SummaryPlayer() {
             </TouchableOpacity>
           </View>
 
-          {/* ALBUM */}
+          {/* ALBUM ART */}
           <View className="items-center justify-center mb-6 px-8">
             <View className="w-full aspect-square bg-gray-800 rounded-2xl overflow-hidden border border-white/10">
               <View className="w-full h-full bg-violet-800 items-center justify-center">
@@ -215,7 +298,7 @@ export default function SummaryPlayer() {
             </View>
           </View>
 
-          {/* TITLE */}
+          {/* TITLE & ADD BUTTON */}
           <View className="px-8 mb-6 flex-row justify-between items-center">
             <View className="flex-1 mr-4">
               <Text className="text-white text-2xl font-bold mb-1" numberOfLines={1}>
@@ -226,14 +309,15 @@ export default function SummaryPlayer() {
               </Text>
             </View>
 
-            <TouchableOpacity onPress={addToPlaylist}>
+            {/* ADD TO PLAYLIST BUTTON */}
+            <TouchableOpacity onPress={openPlaylistModal}>
               <View className="w-10 h-10 rounded-full border border-gray-400 items-center justify-center">
                 <Ionicons name="add" size={24} color="white" />
               </View>
             </TouchableOpacity>
           </View>
 
-          {/* PROGRESS */}
+          {/* PROGRESS SLIDER */}
           <View className="px-8 mb-2">
             <Slider
               style={{ width: '100%', height: 40 }}
@@ -247,12 +331,8 @@ export default function SummaryPlayer() {
               thumbTintColor="#ffffff"
             />
             <View className="flex-row justify-between -mt-2">
-              <Text className="text-xs text-gray-400 font-medium">
-                {formatTime(position)}
-              </Text>
-              <Text className="text-xs text-gray-400 font-medium">
-                -{formatTime(duration - position)}
-              </Text>
+              <Text className="text-xs text-gray-400 font-medium">{formatTime(position)}</Text>
+              <Text className="text-xs text-gray-400 font-medium">-{formatTime(duration - position)}</Text>
             </View>
           </View>
 
@@ -281,76 +361,170 @@ export default function SummaryPlayer() {
             </TouchableOpacity>
           </View>
 
-          {/* SUMMARY SECTION */}
-          {/* LYRICS CARD (The requested UI improvement) */}
+          {/* LYRICS CARD */}
           <View
-            className="mx-4 rounded-2xl overflow-hidden"
+            className="mx-4 rounded-[32px] overflow-hidden mb-10"
             style={{
-              backgroundColor: '#4c1d95', // The specific slate/teal from the image
-              minHeight: height * 0.10
+              backgroundColor: '#4c1d95',
+              height: CONTAINER_HEIGHT
             }}
           >
-            {/* Card Header */}
-            <View className="flex-row justify-between items-center px-5 pt-5 pb-2">
-              <Text className="text-white font-bold text-lg">Lyrics</Text>
-
-              <View className="bg-black/30 flex-row items-center px-3 py-1.5 rounded-full">
-                <Text className="text-white text-[10px] font-bold tracking-wider mr-1">MORE</Text>
-                <Ionicons name="expand-outline" size={16} color="white" />
+            <View className="flex-row justify-between items-center px-6 pt-5 pb-2 z-10 bg-[#4c1d95]">
+              <Text className="text-white/80 font-black uppercase tracking-widest text-[10px]">
+                Teleprompter Sync
+              </Text>
+              <View className="bg-black/20 flex-row items-center px-3 py-1.5 rounded-full">
+                <View className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-2 animate-pulse" />
+                <Text className="text-white text-[10px] font-bold tracking-wider">LIVE</Text>
               </View>
             </View>
 
-            {/* Scrollable Text Area */}
             <ScrollView
               ref={lyricsScrollRef}
               nestedScrollEnabled={true}
-              className="px-5 mb-5"
+              scrollEnabled={true}
+              className="flex-1"
               showsVerticalScrollIndicator={false}
+              contentContainerStyle={{
+                paddingTop: 40,
+                paddingBottom: CONTAINER_HEIGHT / 5,
+                paddingHorizontal: 24
+              }}
             >
               {lines.length > 0 ? (
-                lines.map((line: string, index: number) => {
-                  // Interpolate values for smooth transitions
-                  const opacity = animatedValues[index].interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.5, 1], // Inactive 0.5, Active 1.0
-                  });
-
-                  const scale = animatedValues[index].interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.98, 1.05], // Subtle scale up for active
-                  });
-
-                  // Conditional styling for the "Active" line color/shadow
-                  const color = animatedValues[index].interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['#A0B3BB', '#FFFFFF'] // Grey-ish blue to Pure White
-                  });
-
-                  return (
-                    <Animated.Text
-                      key={index}
-                      className="font-bold text-2xl mb-6 leading-9"
-                      style={{
-                        opacity,
-                        transform: [{ scale }],
-                        color: color
-                      }}
-                    >
-                      {line}
-                    </Animated.Text>
-                  );
-                })
+                lines.map((line: string, index: number) => (
+                  <Animated.Text
+                    key={index}
+                    onLayout={(event) => {
+                      const { y, height } = event.nativeEvent.layout;
+                      lineLayouts.current[index] = { y, height };
+                    }}
+                    style={{
+                      opacity: animatedValues[index],
+                      transform: [{
+                        scale: animatedValues[index].interpolate({
+                          inputRange: [0.1, 1],
+                          outputRange: [0.98, 1.05]
+                        })
+                      }],
+                      color: animatedValues[index].interpolate({
+                        inputRange: [0.1, 1],
+                        outputRange: ['rgba(255, 255, 255, 0.4)', '#FFFFFF']
+                      }),
+                      marginBottom: 20,
+                      textAlignVertical: 'center',
+                      fontSize: 22,
+                      fontWeight: '700',
+                      lineHeight: 32
+                    }}
+                  >
+                    {line}
+                  </Animated.Text>
+                ))
               ) : (
                 <View className="py-10 items-center">
-                  <Text className="text-white/50 text-base">Lyrics not available</Text>
+                  <Text className="text-white/50 text-base">Summary not available</Text>
                 </View>
               )}
-              <View className="h-10" />
             </ScrollView>
           </View>
 
         </SafeAreaView>
       </ScrollView>
+
+      {/* --- ADD TO PLAYLIST MODAL WITH DROPDOWN --- */}
+      <Modal visible={modalVisible} animationType="slide" transparent>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          className="flex-1 justify-end bg-black/50"
+        >
+          <TouchableWithoutFeedback onPress={() => setIsDropdownOpen(false)}>
+            <View className="bg-white rounded-t-3xl p-6 h-[60%]">
+
+              {/* Modal Header */}
+              <View className="flex-row justify-between items-center mb-6">
+                <Text className="text-2xl font-bold text-slate-900">Add to Playlist</Text>
+                <TouchableOpacity
+                  onPress={() => setModalVisible(false)}
+                  className="bg-slate-100 p-2 rounded-full"
+                >
+                  <Ionicons name="close" size={20} color="#64748b" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Dropdown Label */}
+              <Text className="label font-semibold mb-2 text-slate-700">Select Playlist</Text>
+
+              {/* --- DROPDOWN CONTAINER --- */}
+              <View className="mb-4 z-50">
+                {/* Dropdown Header */}
+                <TouchableOpacity
+                  onPress={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex-row items-center justify-between p-3 border border-slate-200 rounded-xl bg-slate-50"
+                >
+                  <Text className="font-medium text-slate-700">
+                    {getSelectedName()}
+                  </Text>
+                  <Text className="text-slate-500 text-xs">
+                    {isDropdownOpen ? "▲" : "▼"}
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Dropdown List (Visible only when open) */}
+                {isDropdownOpen && (
+                  <View className="absolute top-12 left-0 right-0 max-h-40 border border-slate-200 rounded-xl bg-white shadow-lg z-50 overflow-hidden">
+                    <ScrollView nestedScrollEnabled className="max-h-40">
+                      {playlists.map((p) => (
+                        <TouchableOpacity
+                          key={p._id || p.id}
+                          onPress={() => {
+                            setSelectedPlaylistId(p._id || p.id);
+                            setIsDropdownOpen(false);
+                          }}
+                          className={`p-3 border-b border-slate-100 ${selectedPlaylistId === (p._id || p.id) ? "bg-violet-100" : ""
+                            }`}
+                        >
+                          <Text className={`font-medium ${selectedPlaylistId === (p._id || p.id) ? "text-violet-700" : "text-slate-600"
+                            }`}>
+                            {p.title || p.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                      {playlists.length === 0 && (
+                        <Text className="p-4 text-slate-400 text-center">No playlists found.</Text>
+                      )}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
+
+              {/* Display Name Input */}
+              <Text className="label font-semibold mb-2 text-slate-700">Display Name</Text>
+              <TextInput
+                className="input-field mb-6 border border-slate-200 rounded-xl p-3 bg-slate-50 text-slate-800"
+                placeholder="Name for this item"
+                value={customName}
+                onChangeText={setCustomName}
+              />
+
+              {/* Add Button */}
+              <TouchableOpacity
+                onPress={handleAddItem}
+                disabled={isAdding}
+                className="bg-violet-600 py-4 rounded-xl items-center shadow-lg shadow-violet-200 mt-auto mb-4"
+              >
+                {isAdding ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="text-white font-bold text-lg">Add Item</Text>
+                )}
+              </TouchableOpacity>
+
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </Modal>
+
     </View>
   );
 }
