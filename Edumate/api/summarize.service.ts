@@ -1,34 +1,33 @@
 import client from "./client";
 
-export const SummaryAPI={
+export const SummaryAPI = {
   uploadPdf: async (formData: FormData) => {
-  console.log("API uploadPdf called", formData);
-  
-  return client.post("/api/summarize/pdf", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
-},
+    console.log("API uploadPdf called", formData);
 
- getSummaries:async () =>{
-  console.log("API getSummaries called");
-  return client.get("/api/summarize/summaries");
- },
+    return client.post("/api/summarize/pdf", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
 
-getSummary:async (id: string) =>{
-  console.log("API getSummary called", id);
-  return client.get(`/api/summarize/summaries/${id}`);
-},
+  getSummaries: async () => {
+    console.log("API getSummaries called");
+    return client.get("/api/summarize/summaries");
+  },
 
-getQuiz:async (id: string) =>{
-  console.log("API getQuiz called", id);
-  return client.get(`/api/summarize/quiz/${id}`);
-},
-submitQuiz:async (id: string, answers: any) =>{
-  console.log("API submitQuiz called", id, answers);
-  return client.post(`/api/summarize/quiz/submit/${id}`, answers);
-}
+  getSummary: async (id: string) => {
+    console.log("API getSummary called", id);
+    return client.get(`/api/summarize/summaries/${id}`);
+  },
+
+  getQuiz: async (summaryId: string) => {
+    return client.get(`/api/summarize/quiz/${summaryId}`);
+  },
+
+  submitQuiz: async (summaryId: string, score: number) => {
+    return client.post(`/api/summarize/quiz/submit/${summaryId}`, { score });
+  }
 
 }
 

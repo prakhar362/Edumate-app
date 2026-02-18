@@ -60,6 +60,7 @@ export default function SummaryPlayer() {
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
   const [customName, setCustomName] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [quizId, setQuizId] = useState<string | null>(null);
 
   // Layout & Animation Refs
   const lineLayouts = useRef<{ y: number, height: number }[]>([]);
@@ -73,6 +74,7 @@ export default function SummaryPlayer() {
         const summaryId = Array.isArray(id) ? id[0] : id;
         const res = await SummaryAPI.getSummary(summaryId);
         const summaryData = res.data;
+        setQuizId(summaryData?.quiz_id);
         setData(summaryData);
         // Set default name for the input field
         setCustomName(summaryData?.name || "");
@@ -178,7 +180,7 @@ export default function SummaryPlayer() {
       const payload = {
         name: customName || data?.name || "Untitled Summary",
         summary_id: summaryId,
-        quiz_id: data?.quiz_id || "",
+        quiz_id: quizId || "",
         pdf_url: data?.pdf_url || "",
         audio_path: data?.audio_path || ""
       };
@@ -282,7 +284,7 @@ export default function SummaryPlayer() {
 
             <TouchableOpacity
               onPress={() => router.push(`/quiz/${id}`)}
-              className="bg-emerald-500 px-3 py-1.5 rounded-full flex-row items-center"
+              className="bg-violet-600 px-3 py-1.5 rounded-full flex-row items-center"
             >
               <Ionicons name="school" size={14} color="white" style={{ marginRight: 4 }} />
               <Text className="text-white font-bold text-xs">Quiz</Text>
@@ -294,6 +296,9 @@ export default function SummaryPlayer() {
             <View className="w-full aspect-square bg-gray-800 rounded-2xl overflow-hidden border border-white/10">
               <View className="w-full h-full bg-violet-800 items-center justify-center">
                 <Ionicons name="book" size={80} color="white" />
+                <Text className="text-white text-2xl font-bold mb-1" numberOfLines={1}>
+                  {data?.name || "Edumate Summary"}
+                </Text>
               </View>
             </View>
           </View>
@@ -370,12 +375,12 @@ export default function SummaryPlayer() {
             }}
           >
             <View className="flex-row justify-between items-center px-6 pt-5 pb-2 z-10 bg-[#4c1d95]">
-              <Text className="text-white/80 font-black uppercase tracking-widest text-[10px]">
-                Teleprompter Sync
+              <Text className="text-white/80 font-black uppercase tracking-widest text-[12px]">
+                Text Summary
               </Text>
               <View className="bg-black/20 flex-row items-center px-3 py-1.5 rounded-full">
-                <View className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-2 animate-pulse" />
-                <Text className="text-white text-[10px] font-bold tracking-wider">LIVE</Text>
+
+                <Text className="text-white text-[12px] font-bold tracking-wider">More</Text>
               </View>
             </View>
 
