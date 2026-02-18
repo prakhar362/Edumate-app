@@ -22,12 +22,28 @@ export const SummaryAPI = {
   },
 
   getQuiz: async (summaryId: string) => {
+    console.log("API getQuiz called", summaryId);
     return client.get(`/api/summarize/quiz/${summaryId}`);
   },
 
   submitQuiz: async (summaryId: string, score: number) => {
-    return client.post(`/api/summarize/quiz/submit/${summaryId}`, { score });
+    console.log("API submitQuiz called", summaryId, score);
+
+    return client.post(
+      `/api/summarize/quiz/submit/${summaryId}`,
+      score,
+      {
+        transformRequest: [(data) => JSON.stringify(data)],
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
   }
+
+
+
+
 
 }
 
