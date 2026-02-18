@@ -28,6 +28,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("All");
   const [userdetails, setUserDetails] = useState<any>([]);
+  const [playlistdata, setPlaylistData] = useState<any>([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -38,6 +39,7 @@ export default function Home() {
         try {
           const pRes = await PlaylistAPI.getPlayLists();
           playlistData = pRes?.data || [];
+          setPlaylistData(playlistData);
         } catch (err) {
           console.log("Playlist API Error:", err);
         }
@@ -75,16 +77,14 @@ export default function Home() {
   const FilterPill = ({ title }: { title: string }) => (
     <TouchableOpacity
       onPress={() => setActiveTab(title)}
-      className={`px-5 py-2.5 rounded-full mr-3 shadow-sm ${
-        activeTab === title
-          ? "bg-violet-600"
-          : "bg-white border border-gray-100"
-      }`}
+      className={`px-5 py-2.5 rounded-full mr-3 shadow-sm ${activeTab === title
+        ? "bg-violet-600"
+        : "bg-white border border-gray-100"
+        }`}
     >
       <Text
-        className={`font-semibold text-sm ${
-          activeTab === title ? "text-white" : "text-gray-600"
-        }`}
+        className={`font-semibold text-sm ${activeTab === title ? "text-white" : "text-gray-600"
+          }`}
       >
         {title}
       </Text>
@@ -115,38 +115,38 @@ export default function Home() {
       </View>
 
       <SafeAreaView className="flex-1 " edges={['top']}>
-          {/* --- Header --- */}
-          <View className="px-6 pt-2 pb-2 flex-row justify-between items-center">
-            <View>
-              <Text className="text-gray-500 font-medium text-sm mb-0.5 uppercase tracking-wider">
-                Welcome Back,
-              </Text>
-              <Text className="text-slate-900 text-3xl font-extrabold tracking-tight">
+        {/* --- Header --- */}
+        <View className="px-6 pt-2 pb-2 flex-row justify-between items-center">
+          <View>
+            <Text className="text-gray-500 font-medium text-sm mb-0.5 uppercase tracking-wider">
+              Welcome Back,
+            </Text>
+            <Text className="text-slate-900 text-3xl font-extrabold tracking-tight">
               {userdetails?.name || "Learner"}
-              </Text>
-            </View>
-            <TouchableOpacity onPress={() => router.push("/(tabs)/profile")}>
-              <View className="w-11 h-11 bg-white rounded-full items-center justify-center shadow-md shadow-violet-100 border border-violet-50">
-                <Ionicons name="person" size={20} color="#7c3aed" />
-              </View>
-            </TouchableOpacity>
+            </Text>
           </View>
-
-          {/* --- Search Bar --- */}
-          <View className="px-6 mb-6">
-            <View className="flex-row items-center bg-white rounded-2xl px-4 py-1 shadow-sm shadow-gray-200 border border-gray-100">
-              <Ionicons name="search" size={22} color="#94a3b8" />
-              <TextInput 
-                placeholder="What do you want to learn?"
-                placeholderTextColor="#94a3b8"
-                className="flex-1 ml-3 text-slate-700 font-medium text-base"
-              />
+          <TouchableOpacity onPress={() => router.push("/(tabs)/profile")}>
+            <View className="w-11 h-11 bg-white rounded-full items-center justify-center shadow-md shadow-violet-100 border border-violet-50">
+              <Ionicons name="person" size={20} color="#7c3aed" />
             </View>
-          </View>
+          </TouchableOpacity>
+        </View>
 
-          <ScrollView
+        {/* --- Search Bar --- */}
+        <View className="px-6 mb-6">
+          <View className="flex-row items-center bg-white rounded-2xl px-4 py-1 shadow-sm shadow-gray-200 border border-gray-100">
+            <Ionicons name="search" size={22} color="#94a3b8" />
+            <TextInput
+              placeholder="What do you want to learn?"
+              placeholderTextColor="#94a3b8"
+              className="flex-1 ml-3 text-slate-700 font-medium text-base"
+            />
+          </View>
+        </View>
+
+        <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 10}}
+          contentContainerStyle={{ paddingBottom: 10 }}
         >
 
           {/* --- Horizontal Playlists --- */}
@@ -156,38 +156,45 @@ export default function Home() {
                 Your Playlists
               </Text>
             </View>
-            
+
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ paddingHorizontal: 24 }}
             >
               {playlists?.length > 0 ? (
-                playlists.map((p, i) => (
+                playlists.map((p: any, i: any) => (
                   <TouchableOpacity
                     key={p.id || p._id}
-                    onPress={() => router.push(`/playlist/${p.id || p._id}`)}
+                    onPress={() => router.push({
+                      pathname: `/playlist/${p.id || p._id}`,
+                      params: {
+                        title: p.title,
+                        description: p.description,
+                        count: p.count // or p.items?.length
+                      }
+                    })}
                     className="mr-5 w-40"
                   >
                     {/* Card Image */}
                     <View className="w-40 h-40 rounded-2xl shadow-lg shadow-violet-200 mb-3 overflow-hidden bg-white">
-                        <LinearGradient
-                            colors={i % 2 === 0 ? ["#a78bfa", "#7c3aed"] : ["#c084fc", "#9333ea"]}
-                            className="w-full h-full items-center justify-center p-4 relative"
-                        >
-                             <View className="absolute bottom-2 left-2 right-2">
-                                <Text className="text-white/90 font-bold text-xs uppercase tracking-widest">Playlist</Text>
-                                <Text className="text-white font-extrabold text-lg leading-6 mt-1" numberOfLines={2}>
-                                    {p.title || "Daily Mix"}
-                                </Text>
-                             </View>
-                             {/* Decorative Icon */}
-                             <View className="absolute top-2 right-2 opacity-30">
-                                 <Ionicons name="headset" size={40} color="white" />
-                             </View>
-                        </LinearGradient>
+                      <LinearGradient
+                        colors={i % 2 === 0 ? ["#a78bfa", "#7c3aed"] : ["#c084fc", "#9333ea"]}
+                        className="w-full h-full items-center justify-center p-4 relative"
+                      >
+                        <View className="absolute bottom-2 left-2 right-2">
+                          <Text className="text-white/90 font-bold text-xs uppercase tracking-widest">Playlist</Text>
+                          <Text className="text-white font-extrabold text-lg leading-6 mt-1" numberOfLines={2}>
+                            {p.title || "Daily Mix"}
+                          </Text>
+                        </View>
+                        {/* Decorative Icon */}
+                        <View className="absolute top-2 right-2 opacity-30">
+                          <Ionicons name="headset" size={40} color="white" />
+                        </View>
+                      </LinearGradient>
                     </View>
-                    
+
                     {/* Meta */}
                     <Text
                       className="text-slate-800 font-bold text-sm"
@@ -202,7 +209,7 @@ export default function Home() {
                 ))
               ) : (
                 <View className="w-full h-32 items-center justify-center">
-                    <Text className="text-gray-400">No playlists found</Text>
+                  <Text className="text-gray-400">No playlists found</Text>
                 </View>
               )}
             </ScrollView>
@@ -238,22 +245,22 @@ export default function Home() {
                   </Text>
                   <View className="flex-row items-center">
                     <View className="bg-green-100 px-2 py-0.5 rounded-md mr-2">
-                        <Text className="text-green-700 text-[10px] font-bold">NEW</Text>
+                      <Text className="text-green-700 text-[10px] font-bold">NEW</Text>
                     </View>
                     <Text className="text-gray-400 text-xs">
-                        {s.filename || "Audio File"}
+                      {s.filename || "Audio File"}
                     </Text>
                   </View>
                 </View>
 
                 {/* Score / Action */}
                 <View className="items-end pl-2">
-                   {s.score > 0 && (
-                        <View className="flex-row items-center bg-violet-50 px-2 py-1 rounded-lg">
-                            <Ionicons name="star" size={10} color="#7c3aed" />
-                            <Text className="text-violet-700 text-xs font-bold ml-1">{s.score}</Text>
-                        </View>
-                   )}
+                  {s.score > 0 && (
+                    <View className="flex-row items-center bg-violet-50 px-2 py-1 rounded-lg">
+                      <Ionicons name="star" size={10} color="#7c3aed" />
+                      <Text className="text-violet-700 text-xs font-bold ml-1">{s.score}</Text>
+                    </View>
+                  )}
                 </View>
               </TouchableOpacity>
             ))}

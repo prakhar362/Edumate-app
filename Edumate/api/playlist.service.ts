@@ -35,6 +35,16 @@ export const PlaylistAPI = {
   }) => {
     console.log(`Adding item to playlist ${playlistId}`, itemData);
     return client.post(`/api/playlists/${playlistId}/items`, itemData);
-  }
+  },
+
+  getItems: async (playlistId: string) => {
+    // console.log("Fetching items for playlist:", playlistId);
+    return client.get(`/api/playlists/${playlistId}/items`);
+  },
+
+  deleteItem: async (playlistId: string, itemId: string) => {
+    console.log(`Deleting item ${itemId} from playlist ${playlistId}`);
+    return client.delete(`/api/playlists/${playlistId}/items/${itemId}`);
+  },
 
 }

@@ -11,6 +11,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="summary/[id]" />
         <Stack.Screen name="quiz/[id]" />
+        <Stack.Screen name="playlist/[id]" />
       </Stack>
     </SafeAreaProvider>
   );
