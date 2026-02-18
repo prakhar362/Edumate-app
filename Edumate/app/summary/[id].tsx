@@ -284,10 +284,10 @@ export default function SummaryPlayer() {
 
             <TouchableOpacity
               onPress={() => router.push(`/quiz/${id}`)}
-              className="bg-violet-600 px-3 py-1.5 rounded-full flex-row items-center"
+              className="bg-violet-600 px-3 py-2 rounded-full flex-row items-center"
             >
-              <Ionicons name="school" size={14} color="white" style={{ marginRight: 4 }} />
-              <Text className="text-white font-bold text-xs">Quiz</Text>
+              <Ionicons name="school" size={16} color="white" style={{ marginRight: 4 }} />
+              <Text className="text-white font-bold text-md">Quiz</Text>
             </TouchableOpacity>
           </View>
 

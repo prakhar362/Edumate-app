@@ -29,13 +29,13 @@ export const SummaryAPI = {
   submitQuiz: async (summaryId: string, score: number) => {
     console.log("API submitQuiz called", summaryId, score);
 
+    // FIX: Send as x-www-form-urlencoded string to match FastAPI's Form(...)
     return client.post(
       `/api/summarize/quiz/submit/${summaryId}`,
-      score,
+      `score=${score}`, // Body must be "key=value" string
       {
-        transformRequest: [(data) => JSON.stringify(data)],
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
         },
       }
     );
