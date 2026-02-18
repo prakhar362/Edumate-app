@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
-  Dimensions, 
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Dimensions,
   ActivityIndicator,
   Alert,
   Animated
@@ -30,6 +30,7 @@ export default function SummaryPlayer() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
+  const lyricsScrollRef = useRef<ScrollView>(null);
 
   // ---------------- STATE ----------------
   const [data, setData] = useState<any>(null);
@@ -132,12 +133,12 @@ export default function SummaryPlayer() {
   const currentLineIndex =
     lineDuration ? Math.floor(position / lineDuration) : 0;
 
-  // Initialize animated values once
+  // Initialize animated values
   useEffect(() => {
     if (lines.length > 0) {
       animatedValues.length = 0;
       lines.forEach(() => {
-        animatedValues.push(new Animated.Value(0.3));
+        animatedValues.push(new Animated.Value(0)); // 0 = inactive, 1 = active
       });
     }
   }, [lines.length]);
@@ -145,21 +146,22 @@ export default function SummaryPlayer() {
   // Animate highlight + auto scroll
   useEffect(() => {
     animatedValues.forEach((anim, index) => {
-      let toValue = 0.3;
-
-      if (index === currentLineIndex) toValue = 1;
-      else if (index < currentLineIndex) toValue = 0.5;
+      const isActive = index === currentLineIndex;
 
       Animated.timing(anim, {
-        toValue,
-        duration: 350,
+        toValue: isActive ? 1 : 0,
+        duration: 400, // Smooth transition
         useNativeDriver: true,
       }).start();
     });
 
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        y: currentLineIndex * 36,
+    // Auto-scroll logic to keep active line near top/middle
+    if (lyricsScrollRef.current && currentLineIndex >= 0) {
+      // Approximate height of a line (font size + margin) ~ 50px
+      // We subtract a buffer to keep the active line not at the very top
+      const scrollPos = currentLineIndex * 50;
+      lyricsScrollRef.current.scrollTo({
+        y: Math.max(0, scrollPos - 100), // Keep active line slightly down from top
         animated: true,
       });
     }
@@ -176,7 +178,7 @@ export default function SummaryPlayer() {
 
   // ---------------- UI ----------------
   return (
-    <View className="flex-1 bg-[#1a1a2e]"> 
+    <View className="flex-1 bg-[#1a1a2e]">
       <LinearGradient
         colors={['#4c1d95', '#1a1a2e']}
         className="absolute top-0 w-full h-full opacity-80"
@@ -195,11 +197,11 @@ export default function SummaryPlayer() {
               AI Audio Summary
             </Text>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => router.push(`/quiz/${id}`)}
               className="bg-emerald-500 px-3 py-1.5 rounded-full flex-row items-center"
             >
-              <Ionicons name="school" size={14} color="white" style={{marginRight: 4}} />
+              <Ionicons name="school" size={14} color="white" style={{ marginRight: 4 }} />
               <Text className="text-white font-bold text-xs">Quiz</Text>
             </TouchableOpacity>
           </View>
@@ -233,8 +235,8 @@ export default function SummaryPlayer() {
 
           {/* PROGRESS */}
           <View className="px-8 mb-2">
-            <Slider 
-              style={{width: '100%', height: 40}}
+            <Slider
+              style={{ width: '100%', height: 40 }}
               minimumValue={0}
               maximumValue={duration}
               value={position}
@@ -261,15 +263,15 @@ export default function SummaryPlayer() {
               <Text className="text-[10px] text-gray-400 text-center -mt-1">-10s</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={togglePlayback}
               className="w-16 h-16 bg-white rounded-full items-center justify-center"
             >
-              <Ionicons 
-                name={isPlaying ? "pause" : "play"} 
-                size={32} 
-                color="black" 
-                style={{marginLeft: isPlaying ? 0 : 4}}
+              <Ionicons
+                name={isPlaying ? "pause" : "play"}
+                size={32}
+                color="black"
+                style={{ marginLeft: isPlaying ? 0 : 4 }}
               />
             </TouchableOpacity>
 
@@ -280,41 +282,71 @@ export default function SummaryPlayer() {
           </View>
 
           {/* SUMMARY SECTION */}
-          <View className="flex-1 bg-[#2D2245] rounded-t-3xl mx-4 p-6">
-            <Text className="text-white font-bold uppercase tracking-widest text-xs mb-4">
-              Summary Text
-            </Text>
+          {/* LYRICS CARD (The requested UI improvement) */}
+          <View
+            className="mx-4 rounded-2xl overflow-hidden"
+            style={{
+              backgroundColor: '#4c1d95', // The specific slate/teal from the image
+              minHeight: height * 0.10
+            }}
+          >
+            {/* Card Header */}
+            <View className="flex-row justify-between items-center px-5 pt-5 pb-2">
+              <Text className="text-white font-bold text-lg">Lyrics</Text>
 
-            {lines.length > 0 ? (
-              lines.map((line: string, index: number) => {
-                const scale = animatedValues[index]
-                  ? animatedValues[index].interpolate({
-                      inputRange: [0.3, 1],
-                      outputRange: [1, 1.05],
-                    })
-                  : 1;
+              <View className="bg-black/30 flex-row items-center px-3 py-1.5 rounded-full">
+                <Text className="text-white text-[10px] font-bold tracking-wider mr-1">MORE</Text>
+                <Ionicons name="expand-outline" size={16} color="white" />
+              </View>
+            </View>
 
-                return (
-                  <Animated.Text
-                    key={index}
-                    className="text-white text-lg font-medium leading-8"
-                    style={{
-                      opacity: animatedValues[index] || 0.3,
-                      transform: [{ scale }],
-                      marginBottom: 6,
-                    }}
-                  >
-                    {line}
-                  </Animated.Text>
-                );
-              })
-            ) : (
-              <Text className="text-gray-400 text-center mt-4">
-                No text content available.
-              </Text>
-            )}
+            {/* Scrollable Text Area */}
+            <ScrollView
+              ref={lyricsScrollRef}
+              nestedScrollEnabled={true}
+              className="px-5 mb-5"
+              showsVerticalScrollIndicator={false}
+            >
+              {lines.length > 0 ? (
+                lines.map((line: string, index: number) => {
+                  // Interpolate values for smooth transitions
+                  const opacity = animatedValues[index].interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.5, 1], // Inactive 0.5, Active 1.0
+                  });
 
-            <View className="h-20" />
+                  const scale = animatedValues[index].interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.98, 1.05], // Subtle scale up for active
+                  });
+
+                  // Conditional styling for the "Active" line color/shadow
+                  const color = animatedValues[index].interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['#A0B3BB', '#FFFFFF'] // Grey-ish blue to Pure White
+                  });
+
+                  return (
+                    <Animated.Text
+                      key={index}
+                      className="font-bold text-2xl mb-6 leading-9"
+                      style={{
+                        opacity,
+                        transform: [{ scale }],
+                        color: color
+                      }}
+                    >
+                      {line}
+                    </Animated.Text>
+                  );
+                })
+              ) : (
+                <View className="py-10 items-center">
+                  <Text className="text-white/50 text-base">Lyrics not available</Text>
+                </View>
+              )}
+              <View className="h-10" />
+            </ScrollView>
           </View>
 
         </SafeAreaView>
