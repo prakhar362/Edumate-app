@@ -37,8 +37,8 @@ const FilterPill = ({
     onPress={onPress}
     activeOpacity={0.8}
     className={`px-6 py-2.5 rounded-full mr-3 border ${active
-        ? "bg-violet-600 border-violet-600"
-        : "bg-white border-slate-200"
+      ? "bg-violet-600 border-violet-600"
+      : "bg-white border-slate-200"
       }`}
     style={!active ? { shadowColor: "#000", shadowOpacity: 0.03, shadowRadius: 5, elevation: 1 } : {}}
   >
@@ -218,8 +218,8 @@ export default function Library() {
               {/* Image Container */}
               <View
                 className={`w-16 h-16 rounded-2xl mr-4 items-center justify-center ${item.type === "playlist"
-                    ? "bg-violet-50"
-                    : "bg-emerald-50"
+                  ? "bg-violet-50"
+                  : "bg-emerald-50"
                   }`}
               >
                 <Image
@@ -249,21 +249,7 @@ export default function Library() {
           )}
         />
 
-        {/* Floating Add Button */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          className="absolute bottom-8 right-6 bg-slate-900 w-16 h-16 rounded-full items-center justify-center"
-          style={{
-            shadowColor: "#0f172a",
-            shadowOpacity: 0.4,
-            shadowRadius: 12,
-            shadowOffset: { width: 0, height: 8 },
-            elevation: 8,
-          }}
-        >
-          {/* Using text for simplicity, or use an Icon */}
-          <Text className="text-white text-3xl font-light mb-1">+</Text>
-        </TouchableOpacity>
+
 
       </SafeAreaView>
     </View>

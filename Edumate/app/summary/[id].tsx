@@ -181,7 +181,7 @@ export default function SummaryPlayer() {
   }, [currentLineIndex, lines.length]);
 
   if (loading) {
-    return <View className="flex-1 bg-[#1a1a2e] items-center justify-center"><ActivityIndicator size="large" color="#8b5cf6" /></View>;
+    return <View className="flex-1 bg-[#4c1d95] items-center justify-center"><ActivityIndicator size="large" color="#8b5cf6" /></View>;
   }
 
   // ---------------- UI ----------------
@@ -210,7 +210,7 @@ export default function SummaryPlayer() {
 
           {/* ALBUM ART */}
           <View className="items-center justify-center mb-6 px-8">
-            <View className="w-full aspect-square bg-gray-800 rounded-2xl overflow-hidden border border-white/10">
+            <View className="w-full aspect-square bg-gray-800 rounded-2xl overflow-hidden">
               <View className="w-full h-full bg-violet-800 items-center justify-center">
                 <Ionicons name="book" size={80} color="white" />
                 <Text className="text-white text-2xl font-bold mb-1" numberOfLines={1}>{data?.name || "Edumate Summary"}</Text>

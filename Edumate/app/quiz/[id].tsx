@@ -17,7 +17,6 @@ import { SummaryAPI } from '@/api/summarize.service';
 
 const { width } = Dimensions.get('window');
 
-
 // =============================
 // 🎯 PIE CHART COMPONENT
 // =============================
@@ -74,7 +73,6 @@ const ResultPieChart = ({
     </View>
   );
 };
-
 
 // =============================
 // 🎯 MAIN QUIZ COMPONENT
@@ -182,7 +180,6 @@ export default function Quiz() {
     } catch (error: any) {
       console.log("========== SUBMIT SCORE ERROR ==========");
 
-      // Axios error handling
       if (error?.response) {
         console.log("Status:", error.response.status);
         console.log("Data:", error.response.data);
@@ -207,9 +204,7 @@ export default function Quiz() {
   };
 
 
-  // =============================
   // ⏳ LOADING
-  // =============================
   if (loading) {
     return (
       <View className="flex-1 bg-[#1a1a2e] items-center justify-center">
@@ -220,9 +215,8 @@ export default function Quiz() {
 
   if (!questions.length) return null;
 
-  // =============================
+
   // 🏆 RESULT SCREEN
-  // =============================
   if (quizCompleted) {
     return (
       <View className="flex-1 bg-[#1a1a2e]">
@@ -231,7 +225,7 @@ export default function Quiz() {
           className="absolute w-full h-full"
         />
         <SafeAreaView className="flex-1 items-center justify-center px-6">
-          <View className="bg-[#2d2d44] p-8 rounded-3xl w-full items-center border border-white/10">
+          <View className="bg-[#070717] p-8 rounded-3xl w-full items-center border border-white/10">
 
             <Text className="text-white text-2xl font-bold mb-2">
               Quiz Results
@@ -335,14 +329,16 @@ export default function Quiz() {
           </Text>
         </View>
 
-        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-          <View className="mx-6 min-h-[200px] bg-[#2d2d44] rounded-3xl p-6 items-center justify-center mb-8">
+        {/* Increased paddingBottom to ensure button clears the global bottom player */}
+        <ScrollView contentContainerStyle={{ paddingBottom: 130 }}>
+          <View className="mx-6 min-h-[200px] bg-[#141429] rounded-3xl p-6 items-center justify-center mb-8">
             <Text className="text-white text-xl font-bold text-center">
               {currentQuestion.question}
             </Text>
           </View>
 
-          <View className="px-6 gap-4">
+          {/* Options */}
+          <View className="px-6 gap-2 mb-8">
             {currentQuestion.options.map(
               (option: string, index: number) => {
                 const isSelected =
@@ -350,7 +346,7 @@ export default function Quiz() {
                 const isCorrect =
                   option === currentQuestion.answer;
 
-                let bg = 'bg-[#1e1e36] border-white/5';
+                let bg = 'bg-[#1d1d27] border-white/10';
                 let text = 'text-white';
 
                 if (isAnswered) {
@@ -389,29 +385,28 @@ export default function Quiz() {
               }
             )}
           </View>
-        </ScrollView>
 
-        <View className="p-6">
-          <TouchableOpacity
-            onPress={handleNext}
-            disabled={!isAnswered}
-            className={`w-full py-4 rounded-2xl items-center ${isAnswered
-              ? 'bg-white'
-              : 'bg-gray-600 opacity-50'
-              }`}
-          >
-            <Text
-              className={`font-bold ${isAnswered
-                ? 'text-violet-900'
-                : 'text-gray-300'
+          {/* Moved NEXT BUTTON here inside the ScrollView */}
+          <View className="px-6">
+            <TouchableOpacity
+              onPress={handleNext}
+              disabled={!isAnswered}
+              className={`w-full py-3 rounded-2xl flex-row items-center justify-center shadow-lg ${isAnswered ? 'bg-white' : 'bg-gray-600 opacity-50'
                 }`}
             >
-              {currentIndex === questions.length - 1
-                ? 'Finish Quiz'
-                : 'Next Question'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+              <Text
+                className={`font-bold text-lg mr-2 ${isAnswered ? 'text-violet-900' : 'text-gray-300'
+                  }`}
+              >
+                {currentIndex === questions.length - 1
+                  ? 'Finish Quiz'
+                  : 'Next Question'}
+              </Text>
+              {isAnswered && <Ionicons name="arrow-forward" size={20} color="#4c1d95" />}
+            </TouchableOpacity>
+          </View>
+
+        </ScrollView>
 
       </SafeAreaView>
     </View>

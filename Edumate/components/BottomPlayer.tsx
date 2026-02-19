@@ -39,14 +39,14 @@ export default function BottomPlayer() {
                 <TouchableOpacity
                     activeOpacity={0.9}
                     onPress={handleOpenSummary}
-                    className="bg-[#2d2d44] rounded-2xl overflow-hidden shadow-xl shadow-black/50 border border-white/10"
+                    className="bg-[#141429] rounded-2xl overflow-hidden shadow-xl shadow-black/50 border border-white/10"
                     style={{ height: 64 }}
                 >
                     <View className="flex-row items-center h-full px-3">
 
                         {/* Track Image */}
                         <View className="w-10 h-10 rounded-lg overflow-hidden mr-3 bg-violet-800 items-center justify-center">
-                            <LinearGradient colors={['#7c3aed', '#4c1d95']} className="w-full h-full items-center justify-center">
+                            <LinearGradient colors={['#621cdbff', '#4c1d95']} className="w-full h-full items-center justify-center">
                                 <Ionicons name="book" size={20} color="white" />
                             </LinearGradient>
                         </View>
