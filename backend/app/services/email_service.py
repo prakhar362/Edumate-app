@@ -1,23 +1,25 @@
-import smtplib
-from email.mime.text import MIMEText
 import os
+import resend
 
-SMTP_EMAIL = os.getenv("SMTP_EMAIL")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+# Set API key
+resend.api_key = os.getenv("RESEND_API_KEY")
+
 
 def send_otp_email(to_email: str, otp: str):
     subject = "Your Password Reset OTP"
-    body = f"""
-    Your OTP for password reset is: {otp}
 
-    This OTP will expire in 5 minutes.
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif;">
+        <h2>Password Reset Request</h2>
+        <p>Your OTP for password reset is:</p>
+        <h1 style="color:#4F46E5;">{otp}</h1>
+        <p>This OTP will expire in <b>5 minutes</b>.</p>
+    </div>
     """
 
-    msg = MIMEText(body)
-    msg["Subject"] = subject
-    msg["From"] = SMTP_EMAIL
-    msg["To"] = to_email
-
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(SMTP_EMAIL, SMTP_PASSWORD)
-        server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
+    resend.Emails.send({
+        "from": "onboarding@resend.dev",
+        "to": to_email,
+        "subject": subject,
+        "html": html_content,
+    })
