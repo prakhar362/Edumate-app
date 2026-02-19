@@ -63,7 +63,7 @@ class PlaylistOut(BaseModel):
     created_at: datetime
 
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel,EmailStr
 
 class PlaylistItemCreate(BaseModel):
     name: str
@@ -75,3 +75,14 @@ class PlaylistItemCreate(BaseModel):
     quiz_id: Optional[str] = None
     pdf_url: Optional[str] = None
     audio_path: Optional[str] = None
+
+class ForgotPasswordIn(BaseModel):
+    email: EmailStr
+
+class VerifyOtpIn(BaseModel):
+    email: EmailStr
+    otp: str
+
+class ResetPasswordIn(BaseModel):
+    email: EmailStr
+    new_password: str

@@ -1,8 +1,10 @@
-from datetime import timedelta
+from datetime import timedelta,datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile,BackgroundTasks
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
+
+
 
 from app.auth.deps import get_current_user
 from app.auth.security import create_access_token, get_password_hash, verify_password
@@ -16,6 +18,10 @@ from app.models.schemas import (
 )
 from app.services import mongodb_service
 from app.services.cloudinary_services import upload_image_bytes_to_cloudinary
+import random
+from app.services.redis_service import redis_client
+from app.services.email_service import send_otp_email
+from app.models.schemas import ForgotPasswordIn, VerifyOtpIn, ResetPasswordIn
 
 router = APIRouter()
 
@@ -200,3 +206,66 @@ async def edit_profile(
         auth_provider=updated_user.get("auth_provider", "local"),
         picture=updated_user.get("picture"),
     )
+
+@router.post("/forgot-password")
+def forgot_password(payload: ForgotPasswordIn):
+    user = mongodb_service.get_user_by_email(payload.email)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="Email not found")
+
+    # Generate 6-digit OTP
+    otp = str(random.randint(100000, 999999))
+
+    # Store in Redis (expire in 5 min = 300 seconds)
+    redis_client.setex(f"otp:{payload.email}", 300, otp)
+
+    # Send Email
+    send_otp_email(payload.email, otp)
+
+    return {"message": "OTP sent successfully"}
+
+@router.post("/verify-otp")
+def verify_otp(payload: VerifyOtpIn):
+    stored_otp = redis_client.get(f"otp:{payload.email}")
+
+    if not stored_otp:
+        raise HTTPException(status_code=400, detail="OTP expired or not found")
+
+    if stored_otp != payload.otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+
+    # OTP valid → allow reset (store reset flag for 10 min)
+    redis_client.setex(f"reset_allowed:{payload.email}", 600, "true")
+
+    return {"message": "OTP verified successfully"}
+
+@router.post("/reset-password")
+def reset_password(payload: ResetPasswordIn):
+    reset_flag = redis_client.get(f"reset_allowed:{payload.email}")
+
+    if not reset_flag:
+        raise HTTPException(
+            status_code=400,
+            detail="OTP verification required"
+        )
+
+    user = mongodb_service.get_user_by_email(payload.email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Hash new password
+    hashed_password = get_password_hash(payload.new_password)
+
+    # Update user
+    mongodb_service.update_user(
+        str(user.get("_id")),
+        {"password_hash": hashed_password}
+    )
+
+    # Cleanup Redis
+    redis_client.delete(f"otp:{payload.email}")
+    redis_client.delete(f"reset_allowed:{payload.email}")
+
+    return {"message": "Password reset successfully"}
+
