@@ -21,6 +21,7 @@ import Svg, { Path, Circle, Defs, LinearGradient as SvgGradient, Stop, Polyline,
 import { PlaylistAPI } from "@/api/playlist.service";
 import { SummaryAPI } from "@/api/summarize.service";
 import { useAuthStore } from "@/store/auth.store";
+import { usePlayerStore } from "@/store/player.store";
 
 const { width } = Dimensions.get("window");
 
@@ -34,6 +35,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("All");
   const [userdetails, setUserDetails] = useState<any>([]);
   const [playlistdata, setPlaylistData] = useState<any>([]);
+  const unloadAudio = usePlayerStore((s) => s.unload);
 
   // ==========================================
   // 🚪 HARDWARE BACK BUTTON HANDLER (ANDROID)
@@ -52,7 +54,11 @@ export default function Home() {
             },
             {
               text: "YES",
-              onPress: () => BackHandler.exitApp()
+              onPress: async () => {
+                await unloadAudio();
+                BackHandler.exitApp()
+
+              }
             }
           ]
         );

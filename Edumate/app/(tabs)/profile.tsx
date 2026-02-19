@@ -16,7 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import * as ImagePicker from "expo-image-picker";
-
+import { usePlayerStore } from "@/store/player.store";
 import { useAuthStore } from "@/store/auth.store";
 import { authAPI } from "@/api/auth.service";
 
@@ -31,6 +31,7 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedImage, setSelectedImage] = useState<any>(null);
+  const unloadAudio = usePlayerStore((s) => s.unload);
 
   const [formData, setFormData] = useState({
     name: "Learner",
@@ -114,6 +115,7 @@ export default function ProfileScreen() {
         style: "destructive",
         onPress: () => {
           if (logout) logout();
+          unloadAudio();
           router.replace("/(auth)/login");
         },
       },
