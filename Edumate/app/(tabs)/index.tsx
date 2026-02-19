@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,9 +8,10 @@ import {
   Alert,
   Dimensions,
   TextInput,
+  BackHandler,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
@@ -29,6 +30,39 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("All");
   const [userdetails, setUserDetails] = useState<any>([]);
   const [playlistdata, setPlaylistData] = useState<any>([]);
+
+  // ==========================================
+  // 🚪 HARDWARE BACK BUTTON HANDLER (ANDROID)
+  // ==========================================
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        Alert.alert(
+          "Exit App",
+          "Are you sure you want to exit?",
+          [
+            {
+              text: "Cancel",
+              onPress: () => null,
+              style: "cancel"
+            },
+            {
+              text: "YES",
+              onPress: () => BackHandler.exitApp()
+            }
+          ]
+        );
+        return true; // true means we intercepted the back press
+      };
+
+      // Add listener
+      BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      // Cleanup listener when leaving the screen
+      return () =>
+        BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    }, [])
+  );
 
   useEffect(() => {
     const loadData = async () => {
