@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -13,18 +13,18 @@ import { useRouter, Link } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
-import * as WebBrowser from "expo-web-browser";
-import * as Google from "expo-auth-session/providers/google";
-import { makeRedirectUri } from "expo-auth-session";
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { useAuthStore } from "@/store/auth.store";
 
-WebBrowser.maybeCompleteAuthSession();
-
-// 🔑 ANDROID CLIENT ID ONLY
-const ANDROID_GOOGLE_CLIENT_ID =
-  "546364980081-ri5fms9s5a8p0e5fnvarm03qa10kt5vt.apps.googleusercontent.com";
-
+// 🌐 WEB CLIENT ID (Matches your Backend)
 const WEB_GOOGLE_CLIENT_ID = "546364980081-069dkejuin4qo8u9omp0bocsqebiop5e.apps.googleusercontent.com";
+
+// Configure Google Sign-in outside your component
+GoogleSignin.configure({
+  webClientId: WEB_GOOGLE_CLIENT_ID,
+  offlineAccess: true, // Required to get the id_token
+});
+
 export default function Login() {
   const router = useRouter();
 
@@ -38,36 +38,6 @@ export default function Login() {
 
   // UI State
   const [showPassword, setShowPassword] = useState(false);
-  // 🔐 Google Auth Request
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: ANDROID_GOOGLE_CLIENT_ID,
-    webClientId: WEB_GOOGLE_CLIENT_ID,
-    responseType: "id_token",
-    scopes: ["profile", "email"],
-    redirectUri: makeRedirectUri({
-      scheme: "edumate"
-    }),
-  });
-
-  // 🔁 Handle Google response
-  useEffect(() => {
-    if (response?.type === "success") {
-      const idToken = response.authentication?.idToken;
-
-      if (!idToken) {
-        Alert.alert("Google Login Failed", "No token received");
-        return;
-      }
-
-      googleLogin(idToken)
-        .then(() => {
-          router.replace("/(tabs)");
-        })
-        .catch(() => {
-          Alert.alert("Login Failed", "Google authentication failed");
-        });
-    }
-  }, [response]);
 
   // ✉️ Email/Password Login
   const handleLogin = async () => {
@@ -87,13 +57,39 @@ export default function Login() {
     }
   };
 
-  // 🔵 Google Login
-  const handleGoogleLogin = () => {
-    if (!request) {
-      Alert.alert("Error", "Google login not ready");
-      return;
+  // 🔵 Native Google Login
+  const handleGoogleLogin = async () => {
+    try {
+      // 1. Check if device has Google Play Services
+      await GoogleSignin.hasPlayServices();
+
+      // 2. Open the native Google Sign-In bottom sheet
+      await GoogleSignin.signIn();
+
+      // 3. Get the ID token safely
+      const { idToken } = await GoogleSignin.getTokens();
+
+      if (!idToken) {
+        Alert.alert("Error", "No ID token received from Google.");
+        return;
+      }
+
+      // 4. Send the token to your backend
+      await googleLogin(idToken);
+      router.replace("/(tabs)");
+
+    } catch (error: any) {
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        console.log("User cancelled the login flow");
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        console.log("Sign in is already in progress");
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert("Error", "Google Play Services not available on this device");
+      } else {
+        Alert.alert("Google Login Failed", error.message);
+        console.error(error);
+      }
     }
-    promptAsync();
   };
 
   return (

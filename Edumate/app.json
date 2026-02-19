@@ -5,7 +5,10 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/edumate_logo.png",
-    "scheme": "edumate",
+    "scheme": [
+      "edumate",
+      "com.googleusercontent.apps.546364980081-ri5fms9s5a8p0e5fnvarm03qa10kt5vt"
+    ],
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -32,7 +35,7 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/edumate_logo.png",
-          "imageWidth": 200,
+          "imageWidth": 800,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
           "dark": {
@@ -40,7 +43,8 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true,
