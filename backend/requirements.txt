@@ -22,5 +22,11 @@ passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 google-auth
 email-validator
+# Redis
+redis>=5.0.0
+# Email (SMTP)
+aiosmtplib
+# Optional but recommended
+certifi
 
 

@@ -36,4 +36,22 @@ export const authAPI = {
 
   googleLogin: (idToken: string) =>
     client.post("/api/auth/google", { id_token: idToken }),
+
+  forgotPassword: async (email: string) => {
+    console.log("API forgotPassword called", email);
+    return client.post("/api/auth/forgot-password", { email });
+  },
+
+  verifyOTP: async (email: string, otp: string) => {
+    console.log("API verifyOTP called", email);
+    return client.post("/api/auth/verify-otp", { email, otp });
+  },
+
+  resetPassword: async (email: string, newPassword: string) => {
+    console.log("API resetPassword called", email);
+    return client.post("/api/auth/reset-password", {
+      email,
+      new_password: newPassword,
+    });
+  },
 };
