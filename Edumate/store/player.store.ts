@@ -1,3 +1,4 @@
+// store/player.store.ts
 import { create } from 'zustand';
 import { Audio } from 'expo-av';
 
@@ -6,7 +7,6 @@ interface Track {
     title: string;
     subtitle?: string;
     audioUrl: string;
-    img?: string; // Optional image URL
 }
 
 interface PlayerState {
@@ -16,12 +16,11 @@ interface PlayerState {
     position: number;
     duration: number;
 
-    // Actions
     loadTrack: (track: Track) => Promise<void>;
     togglePlayPause: () => Promise<void>;
     seekBy: (seconds: number) => Promise<void>;
+    seekTo: (millis: number) => Promise<void>; // <-- Added this
     unload: () => Promise<void>;
-    setPosition: (millis: number) => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
@@ -29,13 +28,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     isPlaying: false,
     currentTrack: null,
     position: 0,
-    duration: 1, // Avoid divide by zero
+    duration: 1,
 
     loadTrack: async (track) => {
         const { sound: oldSound } = get();
-        if (oldSound) {
-            await oldSound.unloadAsync();
-        }
+        if (oldSound) await oldSound.unloadAsync();
 
         try {
             await Audio.setAudioModeAsync({
@@ -54,14 +51,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
                             duration: status.durationMillis || 1,
                             isPlaying: status.isPlaying,
                         });
-                        // Auto-cleanup if finished
-                        if (status.didJustFinish) {
-                            set({ isPlaying: false, position: 0 });
-                        }
+                        if (status.didJustFinish) set({ isPlaying: false, position: 0 });
                     }
                 }
             );
-
             set({ sound: newSound, currentTrack: track, isPlaying: true });
         } catch (error) {
             console.error("Error loading track", error);
@@ -71,28 +64,24 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     togglePlayPause: async () => {
         const { sound, isPlaying } = get();
         if (!sound) return;
-
-        if (isPlaying) {
-            await sound.pauseAsync();
-        } else {
-            await sound.playAsync();
-        }
+        isPlaying ? await sound.pauseAsync() : await sound.playAsync();
     },
 
     seekBy: async (seconds) => {
         const { sound, position, duration } = get();
         if (!sound) return;
-
         const newPosition = position + (seconds * 1000);
-        const finalPosition = Math.max(0, Math.min(newPosition, duration));
-        await sound.setPositionAsync(finalPosition);
+        await sound.setPositionAsync(Math.max(0, Math.min(newPosition, duration)));
+    },
+
+    seekTo: async (millis) => {
+        const { sound } = get();
+        if (sound) await sound.setPositionAsync(millis);
     },
 
     unload: async () => {
         const { sound } = get();
         if (sound) await sound.unloadAsync();
-        set({ sound: null, currentTrack: null, isPlaying: false });
+        set({ sound: null, currentTrack: null, isPlaying: false, position: 0 });
     },
-
-    setPosition: (millis) => set({ position: millis }),
 }));
