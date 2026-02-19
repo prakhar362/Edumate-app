@@ -63,3 +63,22 @@ def upload_audio_bytes_to_cloudinary(audio_bytes: bytes, filename: str):
     except Exception as e:
         print("🔥 CLOUDINARY AUDIO ERROR:", e)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def upload_image_bytes_to_cloudinary(image_bytes: bytes, filename: str):
+    try:
+        file_like = BytesIO(image_bytes)
+        file_like.name = filename
+
+        response = cloudinary.uploader.upload(
+            file_like,
+            resource_type="image",
+            folder="users/profile_pictures/",
+            overwrite=True,
+        )
+
+        return response["secure_url"]
+
+    except Exception as e:
+        print("🔥 CLOUDINARY IMAGE ERROR:", e)
+        raise HTTPException(status_code=500, detail="Image upload failed.")

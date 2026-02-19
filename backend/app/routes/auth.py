@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 
@@ -15,6 +15,7 @@ from app.models.schemas import (
     UserOut,
 )
 from app.services import mongodb_service
+from app.services.cloudinary_services import upload_image_bytes_to_cloudinary
 
 router = APIRouter()
 
@@ -142,3 +143,60 @@ def get_me(current_user=Depends(get_current_user)):
     )
 
 
+
+
+
+@router.put("/edit-profile", response_model=UserOut)
+async def edit_profile(
+    name: str = Form(None),
+    email: str = Form(None),
+    password: str = Form(None),
+    picture: UploadFile = File(None),
+    current_user=Depends(get_current_user),
+):
+    user_id = str(current_user.get("_id") or current_user.get("id"))
+
+    update_data = {}
+
+    # ✅ Update name
+    if name:
+        update_data["name"] = name
+
+    # ✅ Update email (check duplicate)
+    if email and email != current_user["email"]:
+        existing = mongodb_service.get_user_by_email(email)
+        if existing:
+            raise HTTPException(
+                status_code=400,
+                detail="Email already in use",
+            )
+        update_data["email"] = email
+
+    # ✅ Update password
+    if password:
+        update_data["password_hash"] = get_password_hash(password)
+
+    # ✅ Upload new picture
+    if picture:
+        contents = await picture.read()
+
+        if len(contents) > 10 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="Image exceeds 10MB limit")
+
+        image_url = upload_image_bytes_to_cloudinary(contents, picture.filename)
+        update_data["picture"] = image_url
+
+    # 🚫 Nothing to update
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields provided to update")
+
+    # 🔥 Update user in DB
+    updated_user = mongodb_service.update_user(user_id, update_data)
+
+    return UserOut(
+        id=user_id,
+        email=updated_user["email"],
+        name=updated_user.get("name"),
+        auth_provider=updated_user.get("auth_provider", "local"),
+        picture=updated_user.get("picture"),
+    )

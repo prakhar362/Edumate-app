@@ -138,6 +138,13 @@ def upsert_google_user(
     return convert_mongo_doc(user_doc)
 
 
+def update_user(user_id: str, update_data: dict):
+    db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": update_data},
+    )
+
+    return db.users.find_one({"_id": ObjectId(user_id)})
 # -----------------------
 # Summary / Quiz helpers
 # -----------------------
