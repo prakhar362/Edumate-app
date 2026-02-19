@@ -289,6 +289,26 @@ def update_summary_score_for_user(summary_id: str, user_id: str, score: int):
 
 
 
+def get_summary_scores_for_user(user_id: str):
+    summaries = list(
+        db.summaries.find(
+            {"user_id": user_id},
+            {
+                "_id": 1,
+                "name": 1,
+                "score": 1,
+                "created_at": 1,
+            },
+        ).sort("created_at", -1)
+    )
+
+    # Convert ObjectId to string
+    for s in summaries:
+        s["summary_id"] = str(s["_id"])
+        s.pop("_id", None)
+
+    return summaries
+
 # -----------------------Playlists -----------------------
 
 def create_playlist(user_id: str, title: str, description: str = "") -> str:

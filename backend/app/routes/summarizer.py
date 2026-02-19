@@ -130,3 +130,12 @@ async def submit_quiz_score(
     return mongodb_service.update_summary_score_for_user(
         summary_id, str(current_user["id"]), score
     )
+
+@router.get("/summary/score")
+async def get_summary_scores(current_user=Depends(get_current_user)):
+    """
+    Get scores of all summaries for the current user.
+    Returns summary_id, name, score, created_at.
+    """
+    user_id = str(current_user["id"])
+    return mongodb_service.get_summary_scores_for_user(user_id)
