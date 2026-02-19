@@ -37,6 +37,7 @@ export default function ProfileScreen() {
     email: "user@example.com",
     phone: "",
     password: "",
+    picture: "",
   });
 
   useEffect(() => {
@@ -246,6 +247,7 @@ export default function ProfileScreen() {
                 }}
               >
                 <View className="bg-white p-1 rounded-full">
+
                   <Image
                     source={{
                       uri:

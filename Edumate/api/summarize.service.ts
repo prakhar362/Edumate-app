@@ -39,7 +39,12 @@ export const SummaryAPI = {
         },
       }
     );
-  }
+  },
+
+  getScore: async () => {
+    console.log("API getScore called");
+    return client.get("/api/summarize/summary/score");
+  },
 
 
 

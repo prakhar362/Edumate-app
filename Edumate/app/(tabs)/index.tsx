@@ -15,6 +15,9 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
+// Add SVG imports
+import Svg, { Path, Circle, Defs, LinearGradient as SvgGradient, Stop, Polyline, Text as SvgText } from "react-native-svg";
+
 import { PlaylistAPI } from "@/api/playlist.service";
 import { SummaryAPI } from "@/api/summarize.service";
 import { useAuthStore } from "@/store/auth.store";
@@ -26,6 +29,7 @@ export default function Home() {
   const { user } = useAuthStore();
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [summaries, setSummaries] = useState<any[]>([]);
+  const [scores, setScores] = useState<any[]>([]); // Added scores state
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("All");
   const [userdetails, setUserDetails] = useState<any>([]);
@@ -56,11 +60,10 @@ export default function Home() {
       };
 
       // Add listener
-      BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
 
       // Cleanup listener when leaving the screen
-      return () =>
-        BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
     }, [])
   );
 
@@ -89,6 +92,17 @@ export default function Home() {
           console.log("Summary API Error:", err);
         }
 
+        // Fetch Scores
+        let scoreData = [];
+        try {
+          if (SummaryAPI && typeof SummaryAPI.getScore === "function") {
+            const scoreRes = await SummaryAPI.getScore();
+            scoreData = scoreRes?.data || [];
+          }
+        } catch (err) {
+          console.log("Score API Error:", err);
+        }
+
         //getting user details and showing it.
         if (user) {
           //console.log("User details:", user);
@@ -98,6 +112,7 @@ export default function Home() {
         console.log("User details from variable:", userdetails);
         setPlaylists(playlistData);
         setSummaries(summaryData);
+        setScores(scoreData); // Set scores
       } catch (e) {
         Alert.alert("Error", "Could not load data.");
       } finally {
@@ -131,6 +146,53 @@ export default function Home() {
         <ActivityIndicator color="#7c3aed" size="large" />
       </View>
     );
+  }
+
+  // =============================
+  // NATIVE SVG LINE CHART LOGIC
+  // =============================
+  const recentScores = [...scores].slice(0, 6).reverse();
+  const hasData = recentScores.length > 0;
+
+  const chartWidth = width - 80;
+  const chartHeight = 160;
+  const paddingTop = 20;
+  const paddingBottom = 30;
+  const paddingLeft = 20;
+  const paddingRight = 20;
+
+  const dataPoints = hasData ? recentScores.map((item) => Number(item.score) || 0) : [0];
+  const maxScore = Math.max(...dataPoints, 5);
+  const minScore = 0;
+
+  const xStep = (chartWidth - paddingLeft - paddingRight) / Math.max(dataPoints.length - 1, 1);
+  const yRatio = (chartHeight - paddingTop - paddingBottom) / (maxScore - minScore);
+
+  const coordinates = dataPoints.map((value, index) => ({
+    x: paddingLeft + index * xStep,
+    y: chartHeight - paddingBottom - (value - minScore) * yRatio,
+    value,
+  }));
+
+  let pathD = "";
+  let fillPathD = "";
+
+  if (coordinates.length > 0) {
+    pathD = `M ${coordinates[0].x},${coordinates[0].y}`;
+    fillPathD = `M ${coordinates[0].x},${chartHeight - paddingBottom} L ${coordinates[0].x},${coordinates[0].y}`;
+
+    for (let i = 0; i < coordinates.length - 1; i++) {
+      const p1 = coordinates[i];
+      const p2 = coordinates[i + 1];
+      const cp1x = p1.x + (p2.x - p1.x) / 2;
+      const cp1y = p1.y;
+      const cp2x = p1.x + (p2.x - p1.x) / 2;
+      const cp2y = p2.y;
+      const curve = ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+      pathD += curve;
+      fillPathD += curve;
+    }
+    fillPathD += ` L ${coordinates[coordinates.length - 1].x},${chartHeight - paddingBottom} Z`;
   }
 
   return (
@@ -248,6 +310,87 @@ export default function Home() {
               )}
             </ScrollView>
           </View>
+
+          {/* ============================= */}
+          {/* PERFORMANCE OVERVIEW (CUSTOM LINE CHART) */}
+          {/* ============================= */}
+          {hasData && (
+            <View className="px-6 mb-8">
+              <View className="mb-4">
+                <Text className="text-slate-900 text-xl font-bold">
+                  Performance Overview
+                </Text>
+                <Text className="text-gray-500 text-xs font-medium mt-1">
+                  Your recent quiz scores over time
+                </Text>
+              </View>
+
+              <View className="bg-white rounded-[28px] p-5 shadow-sm border border-slate-100">
+                <Svg width={chartWidth} height={chartHeight}>
+                  <Defs>
+                    <SvgGradient id="gradientFill" x1="0" y1="0" x2="0" y2="1">
+                      <Stop offset="0" stopColor="#7c3aed" stopOpacity="0.3" />
+                      <Stop offset="1" stopColor="#7c3aed" stopOpacity="0.0" />
+                    </SvgGradient>
+                  </Defs>
+
+                  {/* Horizontal Grid Lines */}
+                  {[0, 0.5, 1].map((ratio, i) => {
+                    const y = paddingTop + ratio * (chartHeight - paddingTop - paddingBottom);
+                    return (
+                      <Polyline
+                        key={`grid-${i}`}
+                        points={`${paddingLeft},${y} ${chartWidth - paddingRight},${y}`}
+                        stroke="#f3f4f6"
+                        strokeWidth="1"
+                        strokeDasharray="4 4"
+                      />
+                    );
+                  })}
+
+                  {/* Gradient Fill under line */}
+                  <Path d={fillPathD} fill="url(#gradientFill)" />
+
+                  {/* The Line */}
+                  <Path d={pathD} fill="none" stroke="#7c3aed" strokeWidth="3" />
+
+                  {/* Data Points & Labels */}
+                  {coordinates.map((point, index) => (
+                    <React.Fragment key={index}>
+                      {/* Outer Dot Ring */}
+                      <Circle cx={point.x} cy={point.y} r="5" fill="#ffffff" stroke="#7c3aed" strokeWidth="2" />
+
+                      {/* Score Text above dot */}
+                      <SvgText
+                        x={point.x}
+                        y={point.y - 12}
+                        fill="#4c1d95"
+                        fontSize="10"
+                        fontWeight="bold"
+                        textAnchor="middle"
+                      >
+                        {point.value}
+                      </SvgText>
+
+                      {/* X-Axis Name Label */}
+                      <SvgText
+                        x={point.x}
+                        y={chartHeight - 5}
+                        fill="#9ca3af"
+                        fontSize="9"
+                        fontWeight="600"
+                        textAnchor="middle"
+                      >
+                        {recentScores[index].name.length > 5
+                          ? recentScores[index].name.substring(0, 4) + '..'
+                          : recentScores[index].name}
+                      </SvgText>
+                    </React.Fragment>
+                  ))}
+                </Svg>
+              </View>
+            </View>
+          )}
 
           {/* --- Vertical Summaries List --- */}
           <View className="px-6">
