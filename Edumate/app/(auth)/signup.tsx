@@ -1,29 +1,42 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  ScrollView, 
-  KeyboardAvoidingView, 
-  Platform, 
-  Alert 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Alert
 } from 'react-native';
 import { useRouter, Link } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { useAuthStore } from '@/store/auth.store';
+
+// 🌐 WEB CLIENT ID (Matches your Backend)
+const WEB_GOOGLE_CLIENT_ID = "546364980081-069dkejuin4qo8u9omp0bocsqebiop5e.apps.googleusercontent.com";
+
+// Configure Google Sign-in outside your component
+GoogleSignin.configure({
+  webClientId: WEB_GOOGLE_CLIENT_ID,
+  offlineAccess: true, // Required to get the id_token
+});
 
 export default function Signup() {
   const router = useRouter();
+
   const signup = useAuthStore((s) => s.signup);
+  const googleLogin = useAuthStore((s) => s.googleLogin); // Reuse this for Google Signup
+
   // Form State
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  
+
   // UI State
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -48,23 +61,56 @@ export default function Signup() {
       console.log('Signup success:', name, email, password);
       Alert.alert('Success', 'Account created successfully!');
       router.replace("/(tabs)");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      Alert.alert('Signup Failed', 'Something went wrong. Please try again.');
+      Alert.alert(
+        'Signup Failed',
+        error?.response?.data?.detail || 'Something went wrong. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleSignup = () => {
-    console.log('Initiating Google Signup...');
-    // Add your Google Auth logic here
+  // 🔵 Native Google Signup/Login
+  const handleGoogleSignup = async () => {
+    try {
+      // 1. Check if device has Google Play Services
+      await GoogleSignin.hasPlayServices();
+
+      // 2. Open the native Google Sign-In bottom sheet
+      await GoogleSignin.signIn();
+
+      // 3. Get the ID token safely
+      const { idToken } = await GoogleSignin.getTokens();
+
+      if (!idToken) {
+        Alert.alert("Error", "No ID token received from Google.");
+        return;
+      }
+
+      // 4. Send the token to your backend
+      await googleLogin(idToken);
+      router.replace("/(tabs)");
+
+    } catch (error: any) {
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        console.log("User cancelled the login flow");
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        console.log("Sign in is already in progress");
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert("Error", "Google Play Services not available on this device");
+      } else {
+        Alert.alert("Google Signup Failed", error.message);
+        console.error(error);
+      }
+    }
   };
 
   return (
     <View className="flex-1">
       <StatusBar style="light" />
-      
+
       {/* 1. Background (Same as Splash Page) */}
       <LinearGradient
         colors={['#3b1f77', '#5e35b1', '#311b92']}
@@ -75,21 +121,20 @@ export default function Signup() {
         {/* Decorative Background Lines */}
         <View className="absolute top-0 -left-40 w-[500px] h-2 bg-white/5 rotate-45 transform" />
         <View className="absolute top-40 -left-40 w-[500px] h-2 bg-white/5 rotate-45 transform" />
-        
+
         {/* Decorative Background Shapes */}
         <View className="absolute top-20 -right-20 w-64 h-64 bg-purple-600/20 rounded-full blur-2xl" />
       </LinearGradient>
 
       {/* 2. Main Content */}
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
       >
         <View className="flex-1 justify-end">
-          
+
           {/* Header Section (Title & Back Button) */}
           <View className="px-6 pt-16 pb-8">
-           
             <Text className="text-white text-4xl font-bold">Sign Up</Text>
             <Text className="text-gray-300 text-lg mt-2">Create your account to get started</Text>
           </View>
@@ -97,13 +142,13 @@ export default function Signup() {
           {/* White Bottom Sheet Form */}
           <View className="bg-white rounded-t-[40px] px-8 pt-10 pb-10 shadow-2xl h-3/4">
             <ScrollView showsVerticalScrollIndicator={false}>
-              
+
               {/* Name Input */}
               <View className="mb-5">
                 <Text className="text-gray-500 text-xs font-bold mb-2 uppercase tracking-wider">Name</Text>
                 <View className="bg-gray-100 rounded-2xl px-4 py-1 border border-gray-100 focus:border-purple-500">
-                  <TextInput 
-                    placeholder="John Doe" 
+                  <TextInput
+                    placeholder="John Doe"
                     placeholderTextColor="#9ca3af"
                     value={name}
                     onChangeText={setName}
@@ -116,8 +161,8 @@ export default function Signup() {
               <View className="mb-5">
                 <Text className="text-gray-500 text-xs font-bold mb-2 uppercase tracking-wider">Email</Text>
                 <View className="bg-gray-100 rounded-2xl px-4 py-1 border border-gray-100 focus:border-purple-500">
-                  <TextInput 
-                    placeholder="example@gmail.com" 
+                  <TextInput
+                    placeholder="example@gmail.com"
                     placeholderTextColor="#9ca3af"
                     value={email}
                     onChangeText={setEmail}
@@ -132,8 +177,8 @@ export default function Signup() {
               <View className="mb-5">
                 <Text className="text-gray-500 text-xs font-bold mb-2 uppercase tracking-wider">Password</Text>
                 <View className="bg-gray-100 rounded-2xl px-4 py-1 flex-row items-center border border-gray-100 focus:border-purple-500">
-                  <TextInput 
-                    placeholder="••••••••" 
+                  <TextInput
+                    placeholder="••••••••"
                     placeholderTextColor="#9ca3af"
                     value={password}
                     onChangeText={setPassword}
@@ -150,8 +195,8 @@ export default function Signup() {
               <View className="mb-8">
                 <Text className="text-gray-500 text-xs font-bold mb-2 uppercase tracking-wider">Re-type Password</Text>
                 <View className="bg-gray-100 rounded-2xl px-4 py-1 flex-row items-center border border-gray-100 focus:border-purple-500">
-                  <TextInput 
-                    placeholder="••••••••" 
+                  <TextInput
+                    placeholder="••••••••"
                     placeholderTextColor="#9ca3af"
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
@@ -165,7 +210,7 @@ export default function Signup() {
               </View>
 
               {/* Sign Up Button */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={handleSignup}
                 className="bg-[#8B5CF6] py-4 rounded-2xl items-center shadow-lg shadow-purple-300"
               >
@@ -180,12 +225,12 @@ export default function Signup() {
               </View>
 
               {/* Google Button */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={handleGoogleSignup}
                 className="flex-row bg-[#4285F4] py-4 rounded-2xl items-center justify-center shadow-md mb-8"
               >
                 <View className="bg-white p-1 rounded-full mr-3">
-                   <Ionicons name="logo-google" size={18} color="#4285F4" />
+                  <Ionicons name="logo-google" size={18} color="#4285F4" />
                 </View>
                 <Text className="text-white font-bold text-base">Sign in with Google</Text>
               </TouchableOpacity>

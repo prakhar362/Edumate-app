@@ -19,6 +19,7 @@ import * as ImagePicker from "expo-image-picker";
 import { usePlayerStore } from "@/store/player.store";
 import { useAuthStore } from "@/store/auth.store";
 import { authAPI } from "@/api/auth.service";
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 const { width } = Dimensions.get("window");
 
@@ -113,9 +114,11 @@ export default function ProfileScreen() {
       {
         text: "Log Out",
         style: "destructive",
-        onPress: () => {
+        onPress: async () => {
           if (logout) logout();
           unloadAudio();
+          await GoogleSignin.signOut();
+
           router.replace("/(auth)/login");
         },
       },
