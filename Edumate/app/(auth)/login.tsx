@@ -15,7 +15,7 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
-
+import { makeRedirectUri } from "expo-auth-session";
 import { useAuthStore } from "@/store/auth.store";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -24,6 +24,7 @@ WebBrowser.maybeCompleteAuthSession();
 const ANDROID_GOOGLE_CLIENT_ID =
   "546364980081-ri5fms9s5a8p0e5fnvarm03qa10kt5vt.apps.googleusercontent.com";
 
+const WEB_GOOGLE_CLIENT_ID = "546364980081-069dkejuin4qo8u9omp0bocsqebiop5e.apps.googleusercontent.com";
 export default function Login() {
   const router = useRouter();
 
@@ -40,8 +41,12 @@ export default function Login() {
   // 🔐 Google Auth Request
   const [request, response, promptAsync] = Google.useAuthRequest({
     androidClientId: ANDROID_GOOGLE_CLIENT_ID,
+    webClientId: WEB_GOOGLE_CLIENT_ID,
     responseType: "id_token",
     scopes: ["profile", "email"],
+    redirectUri: makeRedirectUri({
+      scheme: "edumate"
+    }),
   });
 
   // 🔁 Handle Google response
