@@ -90,14 +90,31 @@ async def summarize_pdf(
     )
     print(f"Summary stored in MongoDB with ID: {summary_id}")
 
+     # Generate quiz
+    try:
+        quiz_data = gemini_service.get_quiz(combined)
+
+        # quiz_data is already a list of dictionaries
+        quiz = [QuizQuestion(**q) for q in quiz_data]
+
+        # Store quiz in MongoDB
+        quiz_id = mongodb_service.store_quiz(
+            quiz_data, file.filename, summary_id, name, user_id
+        )
+
+    except Exception as e:
+        print("⚠️ Quiz generation failed:", e)
+        quiz = []
+        quiz_id = None
+
     return SummarizeResponse(
         name=name,
         score=0,
         summary=summary,
         audio_path=audio_url,
-        quiz=[],
+        quiz=quiz,
         summary_id=summary_id,
-        quiz_id=None,
+        quiz_id=quiz_id,
         pdf_url=pdf_url,
     )
 
