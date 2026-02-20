@@ -7,15 +7,23 @@
 
 Edumate is a state-of-the-art educational application designed to transform how you consume and learn from documents. By leveraging advanced AI, Edumate converts static PDFs into interactive summaries, audio experiences, and smart quizzes.
 
+# Want to see the App? 
+Click here: https://appetize.io/app/b_zdef4khdymkld5dwifymkj5dea
+
+# Want to download the App (Android version)?
+Click here: https://drive.google.com/file/d/1-haxJelWiwj_aRDNgr2MBb75OFtxLYHN/view?usp=sharing
+
 ---
 
-## 📽️ Preview
+## 📸 App Screenshots
 
-| Home Screen | Summary View | Quiz Mode |
-| :---: | :---: | :---: |
-| ![Home](https://placehold.co/200x400/6D28D9/FFFFFF?text=Edumate+Home) | ![Summary](https://placehold.co/200x400/6D28D9/FFFFFF?text=AI+Summary) | ![Quiz](https://placehold.co/200x400/6D28D9/FFFFFF?text=Interactive+Quiz) |
+| Auth & Google Login | Home Screen | Library View | Create Page |
+| :---: | :---: | :---: | :---: |
+| <img src="https://github.com/user-attachments/assets/c48cb2b4-d3e9-4333-acdf-97d9799ffb6d" width="250" alt="Auth" /> | <img src="https://github.com/user-attachments/assets/1bf4f920-9f39-4caf-b0c1-3be3bbf00585" width="250" alt="Home" /> | <img src="https://github.com/user-attachments/assets/31c9a201-5d44-4dfc-8432-1aaefb2ed0bb" width="250" alt="Library" /> | <img src="https://github.com/user-attachments/assets/54554194-57e8-4606-8aa3-18cfd6965415" width="250" alt="Create" /> |
+| **Summary Page** | **Interactive Quiz** | **User Profile** | **Forgot Password (OTP)** |
+| <img src="https://github.com/user-attachments/assets/e4c43716-ebca-4540-8fba-ab666840b8a9" width="250" alt="Summary" /> | <img src="https://github.com/user-attachments/assets/631e3d74-d8af-400e-8e64-22d18d2b1dae" width="250" alt="Quiz" /> | <img src="https://github.com/user-attachments/assets/dad18fea-c976-4e79-94b0-e31ac5e74be2" width="250" alt="Profile" /> | <img src="https://github.com/user-attachments/assets/da06ecb4-0eb1-4811-b690-41bfd14cb2a0" width="250" alt="Forgot Password" /> |
 
-*(Screenshots are representative - replace with actual app captures)*
+
 
 ---
 
@@ -152,4 +160,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-<p align="center">Made with ❤️ for better learning</p>
+<p align="center">Made by Prakhar Shrivastava for better learning !</p>
