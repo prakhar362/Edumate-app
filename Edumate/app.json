@@ -4,7 +4,7 @@
     "slug": "Edumate",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/edumate_logo.png",
+    "icon": "./assets/images/edumate_final.png",
     "scheme": [
       "edumate",
       "com.googleusercontent.apps.546364980081-ri5fms9s5a8p0e5fnvarm03qa10kt5vt"
@@ -17,9 +17,9 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/edumate_logo.png",
-        "backgroundImage": "./assets/images/edumate_logo.png",
-        "monochromeImage": "./assets/images/edumate_logo.png"
+        "foregroundImage": "./assets/images/edumate_final.png",
+        "backgroundImage": "./assets/images/edumate_final.png",
+        "monochromeImage": "./assets/images/edumate_final.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -34,7 +34,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/edumate_logo.png",
+          "image": "./assets/images/edumate_final.png",
           "imageWidth": 200,
           "resizeMode": "cover",
           "backgroundColor": "#ffffff",
