@@ -1,50 +1,50 @@
-# Welcome to your Expo app 👋
+# 📱 Edumate Frontend
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+This is the mobile application for **Edumate**, built using **Expo** and **React Native**. It provides a premium, interactive experience for consuming AI-generated educational content.
 
-## Get started
+## 🚀 Features
 
-1. Install dependencies
+- **Intuitive Navigation**: Built with Expo Router for smooth transitions between screens.
+- **AI Summary Player**: A dedicated player interface for listening to summaries with real-time text highlighting.
+- **Dynamic Quizzes**: Interactive UI for taking quizzes, with immediate feedback and scoring.
+- **Playlist Management**: View and organize your learned content into categories.
+- **Authentication**: Integrated with the FastAPI backend for secure login and account management.
+- **Theming**: Modern UI styled with **NativeWind** (Tailwind CSS) for a sleek, consistent look.
 
+## 🛠️ Tech Stack
+
+- **Framework**: [Expo](https://expo.dev/) (React Native)
+- **Routing**: [Expo Router](https://docs.expo.dev/router/introduction/)
+- **Styling**: [NativeWind](https://www.nativewind.dev/) (Tailwind CSS)
+- **State Management**: [Zustand](https://github.com/pmndrs/zustand)
+- **Audio**: [expo-av](https://docs.expo.dev/versions/latest/sdk/av/)
+- **Icons**: [Lucide React Native](https://lucide.dev/guide/packages/lucide-react-native) & [Expo Vector Icons](https://docs.expo.dev/guides/icons/)
+- **Animations**: [React Native Reanimated](https://docs.swmansion.com/react-native-reanimated/)
+
+## 📂 Project Structure
+
+- `app/`: Contains the main screens and layouts.
+  - `(auth)`: Login, Register, and Forgot Password screens.
+  - `(tabs)`: Home, Library, Create, and Profile tabs.
+  - `summary`: Detailed summary view and audio player.
+  - `quiz`: Interactive quiz interface.
+- `components/`: Reusable UI components like buttons, inputs, and cards.
+- `store/`: Zustand stores for managing global state (auth, audio, playlists).
+- `api/`: API client and services for communicating with the backend.
+- `assets/`: Images, fonts, and other static files.
+
+## 🏗️ Installation
+
+1. Install dependencies:
    ```bash
    npm install
    ```
-
-2. Start the app
-
+2. Start the development server:
    ```bash
    npx expo start
    ```
+3. Use the **Expo Go** app on your phone or an emulator to run the project.
 
-In the output, you'll find options to open the app in a
+## 📄 License
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+This project is licensed under the MIT License.
