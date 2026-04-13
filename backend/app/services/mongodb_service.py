@@ -292,6 +292,15 @@ def update_summary_score_for_user(summary_id: str, user_id: str, score: int):
     if result.modified_count == 0:
         return {"message": "Summary not found for this user or score unchanged"}
 
+    # --- Adaptive Learning Hook ---
+    # Update the Bandits RL state with the actual score they received
+    try:
+        from app.services.adaptive_engine import update_feedback_loop
+        update_feedback_loop(user_id=user_id, quiz_score=score)
+        print(f"📈 Adaptive Engine updated state for user {user_id} with score {score}")
+    except Exception as e:
+        print(f"Failed to update adaptive engine RL tracking: {e}")
+
     return {"message": "Score changed successfully"}
 
 

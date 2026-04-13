@@ -39,6 +39,17 @@ def fetch_combined(collection_name):
             break
         offset += limit
 
+    # Re-ranking: Cross-Encoder to verify relevance before generation
+    # Since routes cannot be modified to pass a user query, we synthesize a 'Query intent' 
+    try:
+        from app.services.pdf_service import rerank_chunks
+        query_intent = "Identify the core abstract, main concepts, and technical definitions."
+        # Keep top chunks using the cross-encoder logic
+        if len(docs) > 3:
+            docs = rerank_chunks(query_intent, docs, top_k=min(len(docs), 15))
+    except Exception as e:
+        print(f"Failed to rerank: {e}")
+
     return "\n\n".join(docs)
 
 
