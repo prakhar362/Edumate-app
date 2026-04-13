@@ -4,26 +4,27 @@ The power behind **Edumate**, this backend provides AI-driven summarization, aud
 
 ## 🚀 Core Functionalities
 
-- **AI Summarization**: Extracts text from PDFs and generates concise summaries using **Google Gemini**.
-- **Vector Search (RAG)**: Uses **ChromaDB** to store and retrieve document embeddings, enabling the AI to ground its answers in the source material.
-- **Audio Generation**: Converts text summaries into high-quality MP3s using **Google Text-to-Speech**.
-- **Quiz Generation**: Automatically creates multiple-choice questions from the uploaded content.
-- **Content Management**: Stores and organizes summaries, quizzes, and playlists in **MongoDB**.
-- **Authentication**: Custom JWT-based authentication system with support for Google OAuth.
+- **Advanced AI Summarization**: Extracts text from PDFs and generates concise summaries natively using **Seq2Seq Hugging Face pipelines (BART-large-cnn)** paired with a Knowledge Graph Concept Mapping layer.
+- **Intelligent RAG Architecture**: Uses **ChromaDB** with Hierarchical Section Chunking and a **Cross-Encoder Re-Ranking model (MS-Marco)** bridging source retrieval logic dynamically before summary generation.
+- **Adaptive Learning Engine**: Implements an Epsilon-greedy **Bandits RL loop** referencing user score history via **MongoDB Tracking**. Actively modulates content difficulty, quiz complexity, and pacing on the fly.
+- **Deep Learning Quiz Generation**: Specifically utilizes customized **T5-tuned logic parameters** paired with Automated Logic-based Distractor generation to assemble dynamic MCQs.
+- **Emotion-Aware Audio Generation**: Converts summaries into MP3s using **Google Text-to-Speech** coupled with semantic keyword triggers adapting narration emotion (voice mapping), and pacing via the Adaptive Engine.
+- **Content Management**: Stores and organizes summaries, quizzes, user embeddings, and playlists natively in **MongoDB**.
 
 ## 🏗️ Architecture
 
-The backend follows a service-oriented pattern:
+The backend follows a highly decoupled and modular production service pattern:
 
-- **FastAPI**: The core web framework handling routing and middleware.
-- **Pydantic**: Data validation and serialization.
+- **FastAPI**: The core web framework proxying routing cleanly.
 - **Services Layer**:
-  - `gemini_service.py`: Interfaces with Google Gemini API.
-  - `mongodb_service.py`: Handles all MongoDB operations.
-  - `chromadb_service.py`: Manages vector embeddings and similarity search.
-  - `cloudinary_services.py`: Manages file uploads to Cloudinary.
-  - `tts_service.py`: Handles Text-to-Speech conversion.
-  - `pdf_service.py`: Manages PDF data extraction and chunking.
+  - `summarization_service.py`: Seq2Seq BART + Concept extraction architectures.
+  - `quiz_generation_service.py`: T5 generation logic mimicking Distractor and Difficulty constraints.
+  - `adaptive_engine.py`: Reinforcement Learning tracker for user states scaling text complexity dynamically.
+  - `gemini_service.py`: Acts structurally as the main proxy routing payload across the RL systems.
+  - `chromadb_service.py`: Manages vector embeddings, retrieval, and Cross-Encoder re-ranking.
+  - `mongodb_service.py`: Handles structural metadata, DB hooks into RL systems, and playlist mappings.
+  - `tts_service.py`: Handles Emotion-aware edge Text-to-Speech processing.
+  - `pdf_service.py`: Hierarchical chunks targeting and Cross Encoder verification logic.
 
 ## 🛠️ Tech Stack
 
