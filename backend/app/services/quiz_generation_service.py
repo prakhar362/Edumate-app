@@ -53,11 +53,13 @@ def get_t5_quiz(text: str, difficulty: str = "medium") -> list:
         [
           {{
             "question": "Question text...",
-            "options": ["A", "B", "C", "D"],
-            "answer": "A"
+            "options": ["First option text", "Second option text", "Third option text", "Fourth option text"],
+            "answer": "Correct option text exactly matching one of the options"
           }}, ...
         ]
         
+        CRITICAL: The "answer" field MUST be the exact word/string of the correct option, NOT a letter like 'A' or 'B'.
+
         Text: {text[:3000]}
         """
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
@@ -74,8 +76,8 @@ def get_t5_quiz(text: str, difficulty: str = "medium") -> list:
     
     return [
         {
-            "question": "Could not generate questions.",
-            "options": ["Error A", "Error B", "Error C", "Error D"],
-            "answer": "Error A"
+            "question": "Could not generate questions due to an error.",
+            "options": ["Service Unavailable", "Unknown parsing error", "Generation failed", "API limits reached"],
+            "answer": "Service Unavailable"
         }
     ]
