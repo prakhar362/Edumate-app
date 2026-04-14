@@ -5,21 +5,28 @@ from app.config import GEMINI_API_KEY
 
 HF_TOKEN = os.environ.get("HF_TOKEN", "")
 
-def get_bart_summary(text: str) -> str:
-    """Uses BART-large-cnn for summarization via HF API"""
-    url = "https://router.huggingface.co/hf-inference/models/facebook/bart-large-cnn"
-    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
-    
-    # Text truncation to avoid token limit errors
-    truncated_text = text[:3500] 
-    payload = {"inputs": truncated_text, "parameters": {"max_length": 200, "min_length": 50}}
-    
-    response = requests.post(url, headers=headers, json=payload)
-    if response.status_code == 200:
-        return response.json()[0]['summary_text']
-    else:
-        print(f"BART Summary API failed, falling back... {response.text}")
-        return _fallback_summary(text)
+def get_technical_summary(text: str) -> str:
+    """Uses Gemini for high-quality technical summarization instead of BART."""
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={GEMINI_API_KEY}"
+        prompt = f"""
+        Summarize the following content into 5-10 bullet points or short paragraphs.Don't give like this nHere's a summary of the provided technical content in 5-10 bullet points , instead directly start with executive summary.
+        Do not hallucinate news or CNN text. Focus strictly on the provided content abstractions:
+
+        {text[:3500]}
+        """
+        payload = {"contents": [{"parts": [{"text": prompt}]}]}
+        headers = {"Content-Type": "application/json"} 
+        
+        response = requests.post(url, headers=headers, json=payload)
+        if response.status_code == 200:
+            return response.json()['candidates'][0]['content']['parts'][0]['text'].strip()
+        else:
+            print(f"Gemini Summary API failed, falling back... {response.text}")
+    except Exception as e:
+        print(f"Summary Generation Error: {e}")
+        
+    return _fallback_summary(text)
 
 def get_knowledge_graph_concepts(text: str) -> list:
     """
@@ -50,11 +57,11 @@ def generate_concept_map_and_summary(text: str, user_complexity: str = "medium")
     """
     Combined seq2seq summarization + KG approach for final output.
     """
-    summary = get_bart_summary(text)
+    summary = get_technical_summary(text)
     concepts = get_knowledge_graph_concepts(text)
     
     # Format the final output to match "Concept Map + Summary"
-    output = f"**Executive Summary (BART-CNN style):**\n{summary}\n\n"
+    output = f"**Executive Summary :**\n{summary}\n\n"
     output += "**Key Concept Map Framework:**\n"
     for c in concepts:
         output += f"- **{c.get('concept', 'N/A')}**: {c.get('definition', 'N/A')}\n"

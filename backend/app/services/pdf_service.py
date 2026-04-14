@@ -2,14 +2,18 @@ import fitz
 import re
 import os
 import requests
+from dotenv import load_dotenv
 
 API_URL = "https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2/pipeline/feature-extraction"
 CROSS_ENCODER_API_URL = "https://api-inference.huggingface.co/models/cross-encoder/ms-marco-MiniLM-L-6-v2"
 
-headers = {
-    "Authorization": f"Bearer {os.environ.get('HF_TOKEN', '')}",
-    "Content-Type": "application/json"
-}
+def get_hf_headers():
+    # Force dotenv to override any stale tokens stuck in your Windows terminal session
+    load_dotenv(override=True)
+    return {
+        "Authorization": f"Bearer {os.environ.get('HF_TOKEN', '')}",
+        "Content-Type": "application/json"
+    }
 
 # ----------------------------
 # Extract PDF text hierarchically
@@ -47,7 +51,7 @@ def get_embeddings(chunks):
     """
     Calls HuggingFace Inference API to generate embeddings.
     """
-    response = requests.post(API_URL, headers=headers, json={"inputs": chunks}, timeout=60)
+    response = requests.post(API_URL, headers=get_hf_headers(), json={"inputs": chunks}, timeout=60)
 
     if response.status_code != 200:
         raise Exception(f"HuggingFace API error: {response.text}")
@@ -64,7 +68,7 @@ def rerank_chunks(query: str, chunks: list, top_k: int = 5) -> list:
     try:
         response = requests.post(
             CROSS_ENCODER_API_URL, 
-            headers=headers, 
+            headers=get_hf_headers(), 
             json={"inputs": {"source_sentence": query, "sentences": chunks}},
             timeout=60
         )
