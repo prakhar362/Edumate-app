@@ -10,8 +10,10 @@ def get_technical_summary(text: str) -> str:
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={GEMINI_API_KEY}"
         prompt = f"""
-        Summarize the following content into 5-10 bullet points or short paragraphs.Don't give like this nHere's a summary of the provided technical content in 5-10 bullet points , instead directly start with executive summary.
-        Do not hallucinate news or CNN text. Focus strictly on the provided content abstractions:
+        Summarize the following content into 7-10 bullet points or short paragraphs. Do not use conversational openings like "Here's a summary...".
+        IMPORTANT: Your output MUST NOT contain ANY asterisks (*). Do not use "**" for bold text. Do not use "*" for bullet points.
+        Use normal dashes (-) for list items. 
+        Focus strictly on the provided content abstractions:
 
         {text[:3500]}
         """
@@ -60,11 +62,16 @@ def generate_concept_map_and_summary(text: str, user_complexity: str = "medium")
     summary = get_technical_summary(text)
     concepts = get_knowledge_graph_concepts(text)
     
-    # Format the final output to match "Concept Map + Summary"
-    output = f"**Executive Summary :**\n{summary}\n\n"
-    output += "**Key Concept Map Framework:**\n"
+    # Strip out any residual asterisks the LLM generates just in case
+    summary = summary.replace("*", "")
+    
+    # Format the final output to match "Concept Map + Summary" cleanly
+    output = f"Executive Summary:\n{summary}\n\n"
+    output += "Key Concept Map Framework:\n"
     for c in concepts:
-        output += f"- **{c.get('concept', 'N/A')}**: {c.get('definition', 'N/A')}\n"
+        concept_name = c.get('concept', 'N/A').replace("*", "")
+        concept_def = c.get('definition', 'N/A').replace("*", "")
+        output += f"- {concept_name}: {concept_def}\n"
         
     return output
 
