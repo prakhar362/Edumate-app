@@ -37,49 +37,56 @@ async def summarize_pdf(
     base_id = os.path.splitext(file.filename)[0]
 
     # -------- Extract PDF text from memory --------
+    print("📑 [Pipeline] Step 1: Extracting hierarchical chunks from PDF...")
     chunks = pdf_service.extract_chunks_from_bytes(contents)
+    print(f"📑 [Pipeline] Extracted {len(chunks)} chunks from PDF.")
+
+    print("🔢 [Pipeline] Step 2: Generating embeddings via HuggingFace...")
     embeddings = pdf_service.get_embeddings(chunks)
-    print(f"Extracted {len(chunks)} chunks from PDF.")
+    print(f"🔢 [Pipeline] Generated {len(embeddings)} embeddings (dim={len(embeddings[0]) if embeddings else 'N/A'}).")
 
+    print("💾 [Pipeline] Step 3: Storing chunks in ChromaDB...")
     chromadb_service.store_chunks(chunks, embeddings, base_id)
-    combined = chromadb_service.fetch_combined(base_id)
 
+    print("🔎 [Pipeline] Step 4: Fetching and re-ranking combined context...")
+    combined = chromadb_service.fetch_combined(base_id)
+    print(f"🔎 [Pipeline] Combined context ready: {len(combined)} chars.")
+
+    print("🧠 [Pipeline] Step 5: Generating summary via Gemini...")
     summary = gemini_service.get_summary(combined)
     # Remove bold (**text**)
     summary = re.sub(r"\*\*(.*?)\*\*", r"\1", summary)
-
     # Remove bullet markers (*   or - )
     summary = re.sub(r"^\s*[\*\-]\s+", "", summary, flags=re.MULTILINE)
-
     # Remove extra backticks
     summary = re.sub(r"`+", "", summary)
-
     # Remove multiple spaces
     summary = re.sub(r"\n\s*\n", "\n\n", summary)
-    summary=summary.strip()
+    summary = summary.strip()
+    print(f"✅ [Pipeline] Summary generated and cleaned. Final length: {len(summary)} chars.")
 
-    print("Summary generated and cleaned.")
-    #print("summary:", summary)
-
+    print("💾 [Pipeline] Step 6: Storing summary in ChromaDB...")
     chromadb_service.store_summary(
         summary,
         collection_name=f"{base_id}_summary",
         pdf_filename=file.filename,
     )
-    print("Summary stored in ChromaDB.")
+    print(f"✅ [Pipeline] Summary stored in ChromaDB collection: '{base_id}_summary'.")
 
     # -------- Generate audio in memory --------
+    print("🔊 [Pipeline] Step 7: Generating TTS audio from summary...")
     audio_bytes = await tts_service.generate_audio_bytes(summary)
-    print("Audio generated from summary.")
+    print("✅ [Pipeline] Audio generated from summary.")
 
     audio_url = upload_audio_bytes_to_cloudinary(
-    audio_bytes,
-    f"{base_id}_summary.mp3"
+        audio_bytes,
+        f"{base_id}_summary.mp3"
     )
-    print(f"Audio uploaded to Cloudinary: {audio_url}")
+    print(f"☁️ [Pipeline] Audio uploaded to Cloudinary: {audio_url}")
 
     user_id = str(current_user["id"])
 
+    print("💾 [Pipeline] Step 8: Storing summary metadata in MongoDB...")
     summary_id = mongodb_service.store_summary(
         summary_text=summary,
         pdf_filename=file.filename,
@@ -88,11 +95,13 @@ async def summarize_pdf(
         user_id=user_id,
         pdf_url=pdf_url,
     )
-    print(f"Summary stored in MongoDB with ID: {summary_id}")
+    print(f"✅ [Pipeline] Summary stored in MongoDB with ID: {summary_id}")
 
      # Generate quiz
+    print("🧩 [Pipeline] Step 9: Generating quiz questions...")
     try:
         quiz_data = gemini_service.get_quiz(combined)
+        print(f"✅ [Pipeline] Quiz generated: {len(quiz_data)} questions.")
 
         # quiz_data is already a list of dictionaries
         quiz = [QuizQuestion(**q) for q in quiz_data]
@@ -101,11 +110,15 @@ async def summarize_pdf(
         quiz_id = mongodb_service.store_quiz(
             quiz_data, file.filename, summary_id, name, user_id
         )
+        print(f"✅ [Pipeline] Quiz stored in MongoDB with ID: {quiz_id}")
 
     except Exception as e:
-        print("⚠️ Quiz generation failed:", e)
+        print(f"⚠️ Quiz generation failed: {e}")
         quiz = []
         quiz_id = None
+
+    print(f"🎉 [Pipeline] Complete! summary_id={summary_id}, quiz_id={quiz_id}")
+
 
     return SummarizeResponse(
         name=name,

@@ -10,12 +10,12 @@ def get_technical_summary(text: str) -> str:
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={GEMINI_API_KEY}"
         prompt = f"""
-        Summarize the following content into 7-10 bullet points or short paragraphs. Do not use conversational openings like "Here's a summary...".
+        Summarize the following content into 10-20 bullet points or short paragraphs. Do not use conversational openings like "Here's a summary...".
         IMPORTANT: Your output MUST NOT contain ANY asterisks (*). Do not use "**" for bold text. Do not use "*" for bullet points.
         Use normal dashes (-) for list items. 
         Focus strictly on the provided content abstractions:
 
-        {text[:3500]}
+        {text}
         """
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
         headers = {"Content-Type": "application/json"} 
@@ -40,7 +40,7 @@ def get_knowledge_graph_concepts(text: str) -> list:
         prompt = f"""
         Extract Key Concepts and Definitions from this text to form a Knowledge Graph.
         Return strictly a JSON array of objects with "concept", "definition", and "relationships".
-        Text: {text[:2000]}
+        Text: {text}
         """
         response = requests.post(str(url), headers={"Content-Type": "application/json"}, json={"contents": [{"parts": [{"text": prompt}]}]})
         
