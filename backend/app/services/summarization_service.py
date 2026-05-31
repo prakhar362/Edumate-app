@@ -47,7 +47,7 @@ def get_technical_summary(text: str) -> str:
         try:
             print(f"🚀 [Tier 2] Invoking Custom Hosted Hugging Face Space at {HF_SPACE_URL}/summarize...")
             space_endpoint = f"{HF_SPACE_URL.rstrip('/')}/summarize"
-            payload = {"text": text[:6000]} # Spaces usually have higher capacity
+            payload = {"text": text[:4000]} # Stay safely under BART's 1024 token limit (4000 chars ~= 1000 tokens)
             headers = {"Content-Type": "application/json"}
             
             response = requests.post(space_endpoint, headers=headers, json=payload, timeout=90)

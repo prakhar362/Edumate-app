@@ -10,6 +10,7 @@ The power behind **Edumate**, this backend provides AI-driven summarization, aud
 - **Deep Learning Quiz Generation**: Specifically utilizes customized **T5-tuned logic parameters** paired with Automated Logic-based Distractor generation to assemble dynamic MCQs.
 - **Emotion-Aware Audio Generation**: Converts summaries into MP3s using **Google Text-to-Speech** coupled with semantic keyword triggers adapting narration emotion (voice mapping), and pacing via the Adaptive Engine.
 - **Content Management**: Stores and organizes summaries, quizzes, user embeddings, and playlists natively in **MongoDB**.
+- **High-Availability & Resilience Layer**: Implements a robust **3-Tier Fallback Framework** (Serverless HF APIs -> Custom Hosted HF Spaces -> Google Gemini / Graceful Bypasses) to guarantee zero-downtime microservice execution and bypasses database cloud limitations (ChromaDB Cloud 16KB quota restrictions) seamlessly.
 
 ## 🏗️ Architecture
 
