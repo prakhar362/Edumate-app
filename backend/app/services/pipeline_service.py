@@ -58,6 +58,9 @@ async def process_pdf_pipeline(
     # 4️⃣ Fetch combined content
     # -------------------------
     combined = chromadb_service.fetch_combined(base_id)
+    if not combined:
+        print("⚠️ [Pipeline] ChromaDB context was empty or retrieval failed. Falling back to raw parsed PDF chunks...")
+        combined = "\n\n".join(chunks)
 
     # -------------------------
     # 5️⃣ Generate summary

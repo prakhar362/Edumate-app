@@ -50,6 +50,9 @@ async def summarize_pdf(
 
     print("🔎 [Pipeline] Step 4: Fetching and re-ranking combined context...")
     combined = chromadb_service.fetch_combined(base_id)
+    if not combined:
+        print("⚠️ [Pipeline] ChromaDB context was empty or retrieval failed. Falling back to raw parsed PDF chunks...")
+        combined = "\n\n".join(chunks)
     print(f"🔎 [Pipeline] Combined context ready: {len(combined)} chars.")
 
     print("🧠 [Pipeline] Step 5: Generating summary via Gemini...")

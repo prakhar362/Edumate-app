@@ -63,21 +63,53 @@ def get_embeddings(chunks):
 # ----------------------------
 def rerank_chunks(query: str, chunks: list, top_k: int = 5) -> list:
     """
-    Integrates a Cross-Encoder re-ranking model after retrieval.
+    Uses a 3-tier Resilient Fallback Framework:
+    Tier 1: Hugging Face Serverless Inference API (MS-Marco Cross-Encoder)
+    Tier 2: Custom Hosted Hugging Face Space Endpoint (/rerank)
+    Tier 3: Graceful Bypass (Return chunks in original dense vector order without re-ranking)
     """
+    # 1️⃣ TIER 1: Hugging Face Serverless Inference API
     try:
+        print("🚀 [Tier 1] Invoking Hugging Face Serverless Inference API for Cross-Encoder re-ranking...")
         response = requests.post(
             CROSS_ENCODER_API_URL, 
             headers=get_hf_headers(), 
             json={"inputs": {"source_sentence": query, "sentences": chunks}},
-            timeout=60
+            timeout=25
         )
         if response.status_code == 200:
             scores = response.json()
-            # Sort chunks by cross encoder confidence scores
-            ranked = sorted(zip(chunks, scores), key=lambda x: x[1], reverse=True)
-            return [chunk for chunk, score in ranked[:top_k]]
+            if isinstance(scores, list):
+                # Sort chunks by cross encoder confidence scores
+                ranked = sorted(zip(chunks, scores), key=lambda x: x[1], reverse=True)
+                print("✅ [Tier 1] Successfully re-ranked chunks via Serverless Cross-Encoder!")
+                return [chunk for chunk, score in ranked[:top_k]]
+        print(f"⚠️ [Tier 1] Cross-Encoder Serverless returned status {response.status_code}")
     except Exception as e:
-        print(f"Cross Encoder Re-ranking failed, falling back randomly: {e}")
-    
+        print(f"⚠️ [Tier 1] Cross-Encoder Serverless failed: {e}")
+
+    # 2️⃣ TIER 2: Custom Hosted Hugging Face Space Endpoint
+    HF_SPACE_URL = os.environ.get("HF_SPACE_URL", "")
+    if HF_SPACE_URL:
+        try:
+            print(f"🚀 [Tier 2] Invoking Custom Hosted Hugging Face Space at {HF_SPACE_URL}/rerank...")
+            space_endpoint = f"{HF_SPACE_URL.rstrip('/')}/rerank"
+            payload = {"query": query, "chunks": chunks}
+            headers = {"Content-Type": "application/json"}
+            
+            response = requests.post(space_endpoint, headers=headers, json=payload, timeout=60)
+            if response.status_code == 200:
+                res_json = response.json()
+                ranked_chunks = res_json.get("chunks") or res_json.get("ranked_chunks")
+                if isinstance(ranked_chunks, list) and len(ranked_chunks) > 0:
+                    print("✅ [Tier 2] Successfully re-ranked chunks via Custom Hosted HF Space!")
+                    return ranked_chunks[:top_k]
+            print(f"⚠️ [Tier 2] Space re-rank endpoint returned code {response.status_code}")
+        except Exception as e:
+            print(f"⚠️ [Tier 2] Custom Space Cross-Encoder failed: {e}")
+    else:
+        print("ℹ️ [Tier 2] Skipped (HF_SPACE_URL environment variable is not configured)")
+
+    # 3️⃣ TIER 3: Graceful Bypass (Fallback)
+    print("🧠 [Tier 3] Falling back to default dense retrieval chunks (no re-ranking)...")
     return chunks[:top_k]

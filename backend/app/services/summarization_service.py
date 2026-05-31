@@ -4,9 +4,67 @@ import json
 from app.config import GEMINI_API_KEY
 
 HF_TOKEN = os.environ.get("HF_TOKEN", "")
+HF_SPACE_URL = os.environ.get("HF_SPACE_URL", "") # Custom HF Space URL (e.g. https://your-space.hf.space)
+BART_API_URL = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
 
 def get_technical_summary(text: str) -> str:
-    """Uses Gemini for high-quality technical summarization instead of BART."""
+    """
+    Uses a 3-tier Resilient Fallback Framework:
+    Tier 1: Hugging Face Serverless Inference API (BART-large-cnn)
+    Tier 2: Custom Hosted Hugging Face Space Endpoint (BART-large-cnn)
+    Tier 3: Google Gemini 2.5 Flash Lite API
+    """
+    # 1️⃣ TIER 1: Hugging Face Serverless Inference API
+    try:
+        print("🚀 [Tier 1] Invoking Hugging Face Serverless Inference API for facebook/bart-large-cnn...")
+        headers = {}
+        if HF_TOKEN:
+            headers["Authorization"] = f"Bearer {HF_TOKEN}"
+        headers["Content-Type"] = "application/json"
+        
+        truncated_text = text[:4000] # Safe token limit
+        payload = {
+            "inputs": truncated_text,
+            "parameters": {
+                "max_length": 150,
+                "min_length": 40,
+                "do_sample": False
+            }
+        }
+        
+        response = requests.post(BART_API_URL, headers=headers, json=payload, timeout=20)
+        if response.status_code == 200:
+            res_json = response.json()
+            if isinstance(res_json, list) and len(res_json) > 0 and 'summary_text' in res_json[0]:
+                print("✅ [Tier 1] Successfully generated summary via Serverless BART HF Inference!")
+                return res_json[0]['summary_text'].strip()
+        print(f"⚠️ [Tier 1] Failed (Status {response.status_code})")
+    except Exception as e:
+        print(f"⚠️ [Tier 1] Exception: {e}")
+
+    # 2️⃣ TIER 2: Custom Hosted Hugging Face Space Endpoint
+    if HF_SPACE_URL:
+        try:
+            print(f"🚀 [Tier 2] Invoking Custom Hosted Hugging Face Space at {HF_SPACE_URL}/summarize...")
+            space_endpoint = f"{HF_SPACE_URL.rstrip('/')}/summarize"
+            payload = {"text": text[:6000]} # Spaces usually have higher capacity
+            headers = {"Content-Type": "application/json"}
+            
+            response = requests.post(space_endpoint, headers=headers, json=payload, timeout=90)
+            if response.status_code == 200:
+                res_json = response.json()
+                summary = res_json.get("summary") or res_json.get("summary_text")
+                if summary:
+                    print("✅ [Tier 2] Successfully generated summary via Custom Hosted HF Space!")
+                    return summary.strip()
+            print(f"⚠️ [Tier 2] Space endpoint returned code {response.status_code}")
+        except Exception as e:
+            print(f"⚠️ [Tier 2] Custom Space Exception: {e}")
+    else:
+        print("ℹ️ [Tier 2] Skipped (HF_SPACE_URL environment variable is not configured)")
+
+    # 3️⃣ TIER 3: Google Gemini 2.5 Flash Lite API Fallback
+    print("🧠 [Tier 3] Falling back to Google Gemini 2.5 Flash Lite for high-quality summarization...")
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={GEMINI_API_KEY}"
         prompt = f"""
@@ -20,13 +78,11 @@ def get_technical_summary(text: str) -> str:
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
         headers = {"Content-Type": "application/json"} 
         
-        response = requests.post(url, headers=headers, json=payload)
+        response = requests.post(url, headers=headers, json=payload, timeout=15)
         if response.status_code == 200:
             return response.json()['candidates'][0]['content']['parts'][0]['text'].strip()
-        else:
-            print(f"Gemini Summary API failed, falling back... {response.text}")
     except Exception as e:
-        print(f"Summary Generation Error: {e}")
+        print(f"⚠️ [Tier 3] Gemini Summary Generation Error: {e}")
         
     return _fallback_summary(text)
 
